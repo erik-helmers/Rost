@@ -10,7 +10,7 @@ use rost::{interrupts};
 
 
 
-// use crate::println;
+ use rost::{println, print};
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,7 +56,7 @@ pub extern "C" fn _start() -> ! {
     test_main();
 
     println!("It did not crash !");
-    
+
     // stack_overflow();
 
     // trigger a page fault
@@ -64,10 +64,10 @@ pub extern "C" fn _start() -> ! {
         *(0xdeadbeef as *mut u64) = 42;
     };
  */    
-    loop {}
+    rost::hlt_loop();
+
 }
 
-use rost::println;
 use core::panic::PanicInfo;
 
 /// This function is called on panic.
@@ -76,7 +76,7 @@ use core::panic::PanicInfo;
 fn panic(info: &PanicInfo) -> ! {
     //println!("{}", info);
     println!("{}", info);
-    loop {}
+    rost::hlt_loop ()
 }
 
 #[cfg(test)]

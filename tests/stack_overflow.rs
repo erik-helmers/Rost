@@ -40,9 +40,24 @@ extern "x86-interrupt" fn test_double_fault_handler(
     _error_code: u64,
 ) -> ! {
     serial_println!("[ok]");
+    print_isf(_stack_frame);
     exit_qemu(QemuExitCode::Success);
     loop {}
 }
+
+
+// Fast patch because it seems that a panic occurs while printing it
+fn print_isf(sf: &InterruptStackFrame)  {
+    serial_println!("ExceptionStackFrame {{
+    instruction_pointer: 0x{:x?},
+    code_segment: {},
+    cpu_flags: {:b},
+    stack_pointer: 0x{:x?},
+    stack_segment: {}
+    }}", sf.instruction_pointer.as_u64(), sf.code_segment, sf.cpu_flags, sf.stack_pointer.as_u64(), sf.stack_segment);
+
+}
+
 
 
 use lazy_static::lazy_static;
