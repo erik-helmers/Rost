@@ -38,7 +38,10 @@ lazy_static! {
     static ref IDT: InterruptDescriptorTable = {
         let mut idt = InterruptDescriptorTable::new();
         idt.breakpoint.set_handler_fn(breakpoint_handler);
-
+        
+        // Page fault handler
+        idt.page_fault.set_handler_fn(page_fault_handler); 
+        
         //Timer handler
         idt[InterruptIndex::Timer.as_usize()]
             .set_handler_fn(timer_interrupt_handler); 
@@ -47,6 +50,8 @@ lazy_static! {
         idt[InterruptIndex::Keyboard.as_usize()]
             .set_handler_fn(keyboard_interrupt_handler);
 
+        
+        
 
         unsafe {
             idt.double_fault
@@ -70,9 +75,27 @@ extern "x86-interrupt" fn breakpoint_handler(
 }
 
 
+use x86_64::structures::idt::PageFaultErrorCode;
+use crate::hlt_loop;
+
+extern "x86-interrupt" fn page_fault_handler(
+    stack_frame: &mut InterruptStackFrame,
+    error_code: PageFaultErrorCode,
+) {
+    use x86_64::registers::control::Cr2;
+
+    println!("exception: page fault");
+    println!("Accessed Address: {:?}", Cr2::read());
+    println!("Error Code: {:?}", error_code);
+    print_isf(stack_frame);
+    hlt_loop();
+}
+
+
+
 // Fast patch because it seems that a panic occurs while printing it
 fn print_isf(sf: &InterruptStackFrame)  {
-    serial_println!("ExceptionStackFrame {{
+    println!("ExceptionStackFrame {{
     instruction_pointer: 0x{:x?},
     code_segment: {},
     cpu_flags: {:x?},

@@ -10,7 +10,7 @@ fn panic(info: &PanicInfo) -> ! {
     rost::test_panic_handler(info)
 }
 
-use rost::serial_print;
+use rost::{serial_print, println};
 
 #[no_mangle]
 pub extern "C" fn _start() -> ! {

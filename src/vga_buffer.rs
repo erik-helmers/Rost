@@ -10,7 +10,7 @@ lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column: 0,
         row: 0,
-        style: Style::new(Color::LightGreen, Color::Black, false),
+        style: Style::new(Color::Yellow, Color::Black, false),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
 }
@@ -31,7 +31,7 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
-    
+
     interrupts::without_interrupts(|| {     // new
         WRITER.lock().write_fmt(args).unwrap();
     });
