@@ -6,7 +6,7 @@
 #![reexport_test_harness_main = "test_main"]
 
 
-use rost::{println, print};
+use rost::{println};
 use bootloader::BootInfo;
 
 
@@ -29,25 +29,12 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 
 
 
-/* 
-//#[test_case]
-fn scroll_test(){
-    println!("Printing 50 lines.");
-    for i in 1..=50 {
-        println!("This is the test line number {}", i);
-        for i in 1..=1000 {
-            let a = i+i;
-        }
-    }
-    println!("Test finished.");
-}
-
- */
 
 
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     rost::init();
+    //println!("Hello from Rost!");
 
     use x86_64::{structures::paging::{MapperAllSizes, Page}, VirtAddr};
 
@@ -70,7 +57,7 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     // write the string `New!` to the screen through the new mapping
     let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
     unsafe { 
-        page_ptr.offset(400).write_volatile(0xf021_f077_f065_f04e);
+        page_ptr.offset(400).write_volatile(0xf020_f077_f065_f04e);
         page_ptr.offset(401).write_volatile(0xf06d_f06f_f072_f066);
         page_ptr.offset(402).write_volatile(0xf077_f065_f06e_f020);
         page_ptr.offset(403).write_volatile(0xf067_f061_f070_f020);

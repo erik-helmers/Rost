@@ -10,6 +10,7 @@ lazy_static! {
     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
         column: 0,
         row: 0,
+        flush_nl: false,
         style: Style::new(Color::Yellow, Color::Black, false),
         buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
     });
@@ -98,8 +99,10 @@ pub struct Buffer(pub [[Volatile<ScreenChar>; BUFFER_WIDTH]; BUFFER_HEIGHT]);
 
 pub struct Writer {
     pub buffer: &'static mut Buffer,
+    /// Use `self.set_column()` to modify this value
     pub column: usize,
     pub row: usize,
+    pub flush_nl: bool,
     pub style: Style
 }
 
@@ -109,54 +112,71 @@ impl core::fmt::Write for Writer {
          Ok(())
     }
 }
+
+
 impl Writer {
+
+    fn set_column(&mut self, column: usize){
+        self.column = column;
+
+        if self.column >= BUFFER_WIDTH {
+            self.newline();
+        }
     
+    }
+    
+    /// Writes the string to the VGA buffer
+    /// 
+    /// Autoscrolls down if space is needed 
     pub fn write(&mut self, txt: &str) {
         for byte in txt.bytes() {
-            //TODO: fix line wrap
-            //TODO: line return
             self.write_char(byte);
         }
      }
 
     fn write_char(&mut self, chr: u8){
+
+        if self.row >= BUFFER_HEIGHT {
+            self.scroll_down(1);
+        }
+
         match chr as char {
             '\n'  => self.newline(),
-            '\t' => self.tab(),
+            '\t' => { self.tab(); self.flush_nl = false},
             // Set character and update cursor
             _ => {
                 self.buffer.0[self.row][self.column].write(ScreenChar{char:chr, style:self.style});
-                self.column += 1;
-                self.check_newline();
+                self.set_column(self.column + 1);
+                self.flush_nl = false;
             }
         }
-
-    }
-
-    fn check_newline(&mut self){
-        if self.column >= BUFFER_WIDTH {
-            self.newline();
-        }
-
     }
 
     
+
+    
     pub fn tab(&mut self){
-        self.column += 4;
-        self.column -= self.column % 4;
-        self.check_newline();
+        let col = self.column + 4;
+        self.set_column( col - col % 4 );
     }
 
+    /// Adds a newline
+    /// 
+    /// This function doesn't scroll down until a character is written
+    /// Or when a newline was already called
     pub fn newline(&mut self){
-        
-        if self.row + 1 >= BUFFER_HEIGHT {
+
+        // If a newline was already added
+        if self.flush_nl && self.row >= BUFFER_HEIGHT{
             self.scroll_down(1);
         }
 
         self.column = 0;
         self.row += 1;
-        
+        self.flush_nl = true;
     }
+
+    
     
     pub fn scroll_down(&mut self, line_count: usize){
         // We copy the lines from top to bottom
@@ -177,7 +197,54 @@ impl Writer {
         self.row = if self.row < line_count { 0 } else { self.row-line_count };
 
     }
-
-
-
 }
+
+
+
+ 
+//#[test_case]
+
+
+#[test_case]
+pub fn test_println_output() {
+    use core::fmt::Write;
+    use x86_64::instructions::interrupts;
+
+    let s = "Some test string that fits on a single line";
+
+    interrupts::without_interrupts(|| {
+        // We use writter to print while writer is locked (avoid timer interrupt dot spam)
+        let mut writer = WRITER.lock();
+        // Newline to avoid fail because of dotspam
+        writeln!(writer, "\n{}", s).expect("writeln failed");
+        for (i, c) in s.chars().enumerate() {
+            let screen_char = writer.buffer.0[1][i].read();
+            assert_eq!(char::from(screen_char.char), c);
+        }
+    });
+}
+
+#[test_case]
+/// Tests auto text scroll 
+pub fn test_println_scroll(){
+    use x86_64::instructions::interrupts;
+    use core::fmt::Write;
+
+    let s1 = "This message should disappear.";
+    let s2 = "This message should be on the second line";
+
+    interrupts::without_interrupts(|| {
+
+        let mut writer = WRITER.lock();
+
+        write!(writer, "{}\n\n{}", s1, s2).expect("writeln failed");
+        // 24 newlines after the message should be on the second line
+        for _ in 0..24 { writeln!(writer, "").expect("writeline failed"); }
+        for (i, c) in s2.chars().enumerate() {
+            let screen_char = writer.buffer.0[1][i].read();
+            assert_eq!(char::from(screen_char.char), c);
+        }
+    });
+    
+}
+
