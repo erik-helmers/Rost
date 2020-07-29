@@ -6,11 +6,8 @@
 #![reexport_test_harness_main = "test_main"]
 
 
-use rost::{interrupts};
-
-
-
- use rost::{println, print};
+use rost::{println, print};
+use bootloader::BootInfo;
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,17 +46,67 @@ fn scroll_test(){
 
 
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     rost::init();
 
+    use x86_64::{structures::paging::{MapperAllSizes, Page}, VirtAddr};
 
-    x86_64::instructions::interrupts::int3();
-    x86_64::instructions::interrupts::int3();
+    use rost::memory;
+    use rost::memory::{BootInfoFrameAllocator};
 
-    use x86_64::registers::control::Cr3;
 
-    let (level_4_page_table, _) = Cr3::read();
-    println!("Level 4 page table at: {:?}", level_4_page_table.start_address());
+
+    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+    let mut mapper = unsafe { memory::init(phys_mem_offset) };
+    
+    let mut frame_allocator = unsafe {
+        BootInfoFrameAllocator::init(&boot_info.memory_map)
+    };
+
+    // map an unused page
+    let page = Page::containing_address(VirtAddr::new(0xdeadbeef000));
+    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+
+    // write the string `New!` to the screen through the new mapping
+    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
+    unsafe { 
+        page_ptr.offset(400).write_volatile(0xf021_f077_f065_f04e);
+        page_ptr.offset(401).write_volatile(0xf06d_f06f_f072_f066);
+        page_ptr.offset(402).write_volatile(0xf077_f065_f06e_f020);
+        page_ptr.offset(403).write_volatile(0xf067_f061_f070_f020);
+        page_ptr.offset(404).write_volatile(0xf020_f021_f020_f065);
+    };
+
+
+    //rost::hlt_loop();
+
+    //memory::explore_page_table(unsafe {memory::active_level_4_table(phys_mem_offset)}, 4, 3,boot_info.physical_memory_offset);
+
+    println!("Physical memory offset: 0x{:016o}", boot_info.physical_memory_offset);
+    println!("Physical memory offset: P1: {}, P2: {}, P3: {}, P4: {}",
+    u16::from(phys_mem_offset.p1_index()) ,
+    u16::from(phys_mem_offset.p2_index()) ,
+    u16::from(phys_mem_offset.p3_index()) ,
+    u16::from(phys_mem_offset.p4_index()) );
+
+    let addresses = [
+        // the identity-mapped vga buffer page
+        0xb8000,
+
+        // some code page
+        0x201008,
+        // some stack page
+        0x0100_0020_1a10,
+        // virtual address mapped to physical address 0
+        boot_info.physical_memory_offset,
+    ];
+
+    for &address in &addresses {
+        let virt = VirtAddr::new(address);
+        let phys = mapper.translate_addr(virt) ;
+        println!("{:?} -> {:?}", virt, phys);
+    }
+
 
 
     #[cfg(test)]

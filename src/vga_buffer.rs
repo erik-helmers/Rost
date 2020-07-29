@@ -122,17 +122,29 @@ impl Writer {
     fn write_char(&mut self, chr: u8){
         match chr as char {
             '\n'  => self.newline(),
+            '\t' => self.tab(),
             // Set character and update cursor
             _ => {
                 self.buffer.0[self.row][self.column].write(ScreenChar{char:chr, style:self.style});
                 self.column += 1;
-                if self.column >= BUFFER_WIDTH {
-                    self.newline();
-                }
-                
+                self.check_newline();
             }
         }
 
+    }
+
+    fn check_newline(&mut self){
+        if self.column >= BUFFER_WIDTH {
+            self.newline();
+        }
+
+    }
+
+    
+    pub fn tab(&mut self){
+        self.column += 4;
+        self.column -= self.column % 4;
+        self.check_newline();
     }
 
     pub fn newline(&mut self){
