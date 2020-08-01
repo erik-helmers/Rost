@@ -6,8 +6,9 @@
 #![reexport_test_harness_main = "test_main"]
 
 
-use rost::{println};
+use rost::{println, print};
 use bootloader::BootInfo;
+
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,90 +27,60 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
+extern crate alloc;
 
+use alloc::boxed::Box;
+//use rost::task::simple_executor::SimpleExecutor;
+//use rost::task::Task;
 
+async fn fun() -> u32{
+    3
+}
 
+async fn some_task(){
+    let num =  fun().await;
+    println!("Task found code {}", num);
+}
 
-
-#[no_mangle]
-pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
-    rost::init();
-    //println!("Hello from Rost!");
-
+fn mem_init(boot_info: &'static BootInfo){
+    
+    
     use x86_64::{structures::paging::{MapperAllSizes, Page}, VirtAddr};
-
     use rost::memory;
-    use rost::memory::{BootInfoFrameAllocator};
-
-
+    use rost::memory::BootInfoFrameAllocator;
+    use rost::allocator;
 
     let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
+
     let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    
     let mut frame_allocator = unsafe {
         BootInfoFrameAllocator::init(&boot_info.memory_map)
     };
 
-    // map an unused page
-    let page = Page::containing_address(VirtAddr::new(0xdeadbeef000));
-    memory::create_example_mapping(page, &mut mapper, &mut frame_allocator);
+    allocator::init_heap(&mut mapper, &mut frame_allocator)
+                .expect("heap alloc failed");
+}
 
-    // write the string `New!` to the screen through the new mapping
-    let page_ptr: *mut u64 = page.start_address().as_mut_ptr();
-    unsafe { 
-        page_ptr.offset(400).write_volatile(0xf020_f077_f065_f04e);
-        page_ptr.offset(401).write_volatile(0xf06d_f06f_f072_f066);
-        page_ptr.offset(402).write_volatile(0xf077_f065_f06e_f020);
-        page_ptr.offset(403).write_volatile(0xf067_f061_f070_f020);
-        page_ptr.offset(404).write_volatile(0xf020_f021_f020_f065);
-    };
+#[no_mangle]
+pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
+    
+    rost::init();
+    println!("Rost is alive !");
+
+    mem_init(boot_info);
 
 
-    //rost::hlt_loop();
-
-    //memory::explore_page_table(unsafe {memory::active_level_4_table(phys_mem_offset)}, 4, 3,boot_info.physical_memory_offset);
-
-    println!("Physical memory offset: 0x{:016o}", boot_info.physical_memory_offset);
-    println!("Physical memory offset: P1: {}, P2: {}, P3: {}, P4: {}",
-    u16::from(phys_mem_offset.p1_index()) ,
-    u16::from(phys_mem_offset.p2_index()) ,
-    u16::from(phys_mem_offset.p3_index()) ,
-    u16::from(phys_mem_offset.p4_index()) );
-
-    let addresses = [
-        // the identity-mapped vga buffer page
-        0xb8000,
-
-        // some code page
-        0x201008,
-        // some stack page
-        0x0100_0020_1a10,
-        // virtual address mapped to physical address 0
-        boot_info.physical_memory_offset,
-    ];
-
-    for &address in &addresses {
-        let virt = VirtAddr::new(address);
-        let phys = mapper.translate_addr(virt) ;
-        println!("{:?} -> {:?}", virt, phys);
-    }
-
-
+    let x = Box::new(3);
+ /*    let mut executor = SimpleExecutor::new();
+    executor.spawn(Task::new(some_task()));
+    executor.run();
+  */
 
     #[cfg(test)]
     test_main();
 
-    println!("It did not crash !");
-
-    // stack_overflow();
-
-    // trigger a page fault
-/*     unsafe {
-        *(0xdeadbeef as *mut u64) = 42;
-    };
- */    
+    println!("So long...");
     rost::hlt_loop();
-
 }
 
 use core::panic::PanicInfo;
@@ -130,12 +101,33 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 
-#[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
-}
 
-#[test_case]
+/// Interrupts should not cause kernel panics
+#[test_case]    
 fn brk_int3() {
     x86_64::instructions::interrupts::int3();
+}
+
+
+
+/// Testing if many float calculations works 
+/// 
+/// Interrupt and FPUs don't work well together
+/// (i.e. 512bytes of data has to be saved for context switching)
+/// So the kernel should NOT use those and rather use soft floating point
+/// see file `x86_64-rost.json:14` 
+#[test_case]
+fn many_float_works_with_interrupts(){
+    let mut acc1 = 0f32;
+    let mut acc2 = 0f32;
+    let mut acc3 = 0f32;
+    for _ in 0..1_000_000 {
+        acc1 += 0.5;
+        acc2 += 1.5f32;
+        acc3 += 3.5;
+    }
+    assert_eq!(acc1, 500_000f32);
+    assert_eq!(acc2, 1_500_000f32);
+    assert_eq!(acc3, 3_500_000f32);
+
 }
