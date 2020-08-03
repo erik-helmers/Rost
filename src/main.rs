@@ -30,8 +30,8 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 extern crate alloc;
 
 use alloc::boxed::Box;
-//use rost::task::simple_executor::SimpleExecutor;
-//use rost::task::Task;
+use rost::task::{executor::Executor, keyboard::print_keypresses};
+use rost::task::Task;
 
 async fn fun() -> u32{
     3
@@ -70,11 +70,10 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     mem_init(boot_info);
 
 
-    let x = Box::new(3);
- /*    let mut executor = SimpleExecutor::new();
+    let mut executor = Executor::new();
     executor.spawn(Task::new(some_task()));
+    executor.spawn(Task::new(print_keypresses()));
     executor.run();
-  */
 
     #[cfg(test)]
     test_main();

@@ -8,6 +8,7 @@
 #![feature(abi_x86_interrupt)]
 
 #![feature(alloc_error_handler)] 
+#![feature(wake_trait)]
 
 pub mod memory;
 pub mod gdt;
@@ -15,6 +16,7 @@ pub mod vga_buffer;
 pub mod serial;
 pub mod interrupts;
 pub mod allocator;
+pub mod task;
 
 extern crate rlibc;
 extern crate alloc;
