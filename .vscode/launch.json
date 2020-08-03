@@ -1,0 +1,111 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "Attach to QEMU",
+          "type":"lldb",
+          "request": "custom",
+          "targetCreateCommands": ["target create ${workspaceFolder}/target/x86_64-rost/debug/rost"],
+          "processCreateCommands": ["gdb-remote 3333"],
+            
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'rost'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=rost"
+                ],
+                "filter": {
+                    "name": "rost",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'rost'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=rost",
+                    "--package=rost"
+                ],
+                "filter": {
+                    "name": "rost",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'rost'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=rost",
+                    "--package=rost"
+                ],
+                "filter": {
+                    "name": "rost",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'stack_overflow'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=stack_overflow",
+                    "--package=rost"
+                ],
+                "filter": {
+                    "name": "stack_overflow",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'heap_allocation'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=heap_allocation",
+                    "--package=rost"
+                ],
+                "filter": {
+                    "name": "heap_allocation",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
