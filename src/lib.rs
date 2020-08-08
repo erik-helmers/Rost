@@ -9,7 +9,11 @@
 
 #![feature(alloc_error_handler)] 
 #![feature(wake_trait)]
+#![feature(asm)]
+#![feature(const_fn)]
+#![feature(const_panic)]
 
+pub mod utils;
 pub mod memory;
 pub mod gdt;
 pub mod vga_buffer;
@@ -17,6 +21,7 @@ pub mod serial;
 pub mod interrupts;
 pub mod allocator;
 pub mod task;
+pub mod arch;
 
 extern crate rlibc;
 extern crate alloc;

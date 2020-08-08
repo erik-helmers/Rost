@@ -6,7 +6,7 @@
 
 extern crate alloc;
 
-use bootloader::{entry_point, BootInfo};
+use bootloader::{BootInfo};
 use core::panic::PanicInfo;
 
 

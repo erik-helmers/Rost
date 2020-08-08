@@ -1,4 +1,3 @@
-
 #![no_std]
 #![no_main]
 #![feature(custom_test_frameworks)]
@@ -6,7 +5,7 @@
 #![reexport_test_harness_main = "test_main"]
 
 
-use rost::{println, print};
+use rost::{println};
 use bootloader::BootInfo;
 
 
@@ -61,6 +60,8 @@ fn mem_init(boot_info: &'static BootInfo){
                 .expect("heap alloc failed");
 }
 
+use rost::arch::pit::*;
+
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     
@@ -69,17 +70,22 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
     mem_init(boot_info);
 
-
-    let mut executor = Executor::new();
-    executor.spawn(Task::new(some_task()));
-    executor.spawn(Task::new(print_keypresses()));
-    executor.run();
-
     #[cfg(test)]
     test_main();
 
-    println!("So long...");
+    let mut ch1 = unsafe { Channel::new(0) };
+    ch1.set_frequency(OperatingMode::RateGenerator, 20 as f64);
     rost::hlt_loop();
+
+    /* let mut executor = Executor::new();
+    executor.spawn(Task::new(some_task()));
+    executor.spawn(Task::new(print_keypresses()));
+    executor.run();
+     */
+
+    
+    //println!("So long...");
+    //rost::hlt_loop();
 }
 
 use core::panic::PanicInfo;

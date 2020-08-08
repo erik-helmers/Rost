@@ -115,31 +115,27 @@ extern "x86-interrupt" fn double_fault_handler(
 extern "x86-interrupt" fn timer_interrupt_handler(
     _stack_frame: &mut InterruptStackFrame)
 {
+    static mut x: u16 = 0;
     print!(".");
     unsafe  {
-        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        asm!("out 32, al", in("al") 0x20 as u8);
+        //PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
 }
+
+use x86_64::instructions::port::*;
+
 
 
 extern "x86-interrupt" fn keyboard_interrupt_handler(
     _stack_frame: &mut InterruptStackFrame)
 {
-    use x86_64::instructions::port::Port;
-    use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
-    use spin::Mutex;
-    
-    lazy_static! {
-        static ref KEYBOARD: Mutex<Keyboard<layouts::Azerty, ScancodeSet1>> =
-            Mutex::new(Keyboard::new(layouts::Azerty, ScancodeSet1,
-                HandleControl::Ignore)
-            );
-    }
 
-    let mut keyboard = KEYBOARD.lock();
+    
+    
 
     let mut port = Port::new(0x60);
-    let scancode: u8 = unsafe { port.read() };
+    let scancode = unsafe { port.read() };
 
     crate::task::keyboard::add_scancode(scancode);
 

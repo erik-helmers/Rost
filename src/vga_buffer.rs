@@ -32,8 +32,8 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
     use x86_64::instructions::interrupts;
-
-    interrupts::without_interrupts(|| {     // new
+    
+    interrupts::without_interrupts(|| {     
         WRITER.lock().write_fmt(args).unwrap();
     });
 }
@@ -115,7 +115,21 @@ impl core::fmt::Write for Writer {
 
 
 impl Writer {
+    
+    pub fn new(buffer: &'static mut Buffer, column: usize, row: usize,
+     style: Style) -> Self {
+        let writer = Writer {
+            buffer,
+            column,
+            row,
+            flush_nl: false,
+            style
+        };
+        #[cfg(feature = "disable_cursor")]
+        writer.disable_cursor();
 
+        writer
+     }
     fn set_column(&mut self, column: usize){
         self.column = column;
 
@@ -196,6 +210,17 @@ impl Writer {
         // Finally the cursor should go up too
         self.row = if self.row < line_count { 0 } else { self.row-line_count };
 
+    }
+
+    /// Disables the blinking cursor 
+    /// 
+    /// for more info 
+    /// https://wiki.osdev.org/Text_Mode_Cursor#Without_the_BIOS
+    pub fn disable_cursor(&self){
+        unsafe {
+            crate::arch::instructions::outb(0x3D4, 0x0A);
+            crate::arch::instructions::outb(0x3D5, 0x20);            
+        }
     }
 }
 
