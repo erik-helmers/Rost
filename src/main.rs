@@ -56,36 +56,40 @@ fn mem_init(boot_info: &'static BootInfo){
         BootInfoFrameAllocator::init(&boot_info.memory_map)
     };
 
+
     allocator::init_heap(&mut mapper, &mut frame_allocator)
                 .expect("heap alloc failed");
 }
 
 use rost::arch::pit::*;
-
+use rost::arch::rtc::{RTC, Register};
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     
+    let mut rtc: RTC = RTC::new();
+
     rost::init();
     println!("Rost is alive !");
 
+    //unsafe { rost::arch::instructions::cli();}
+
     mem_init(boot_info);
+
+    rtc.init();
+    rtc.print_date();
+    rtc.print_time();
 
     #[cfg(test)]
     test_main();
 
     let mut ch1 = unsafe { Channel::new(0) };
     ch1.set_frequency(OperatingMode::RateGenerator, 20 as f64);
-    rost::hlt_loop();
-
-    /* let mut executor = Executor::new();
+    //rost::hlt_loop();
+    
+    let mut executor = Executor::new();
     executor.spawn(Task::new(some_task()));
     executor.spawn(Task::new(print_keypresses()));
-    executor.run();
-     */
-
-    
-    //println!("So long...");
-    //rost::hlt_loop();
+    executor.run();   
 }
 
 use core::panic::PanicInfo;
