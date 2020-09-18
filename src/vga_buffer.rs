@@ -7,13 +7,13 @@ use spin::Mutex;
 
 
 lazy_static! {
-    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
-        column: 0,
-        row: 0,
-        flush_nl: false,
-        style: Style::new(Color::Yellow, Color::Black, false),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    });
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer::new(
+        unsafe { &mut *(0xb8000 as *mut Buffer) },
+        0,
+        0,
+        Style::new(Color::Yellow, Color::Black, false)
+    )
+);
 }
 
 
@@ -118,7 +118,7 @@ impl Writer {
     
     pub fn new(buffer: &'static mut Buffer, column: usize, row: usize,
      style: Style) -> Self {
-        let writer = Writer {
+        let mut writer = Writer {
             buffer,
             column,
             row,

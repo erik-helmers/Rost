@@ -1,3 +1,10 @@
+/*!
+ * In this file we implement RTC (real time clock support)
+ * As stated n the osdev.org article, we do not try writting to the mode registers 
+ * 
+ * TODO: implement "update in progress" support, probably by using a task 
+ */
+
 
 use crate::arch::port::{Port, ReadonlyPort};
 use crate::println;
@@ -48,39 +55,51 @@ impl RTC {
     }
 
     pub fn init(&mut self){
-
         let reg_b = self.read_register(Register::StatusRegisterB);
         self.format_24hours = reg_b & 0x2 != 0;
         self.bin_mode = reg_b & 0x4 != 0; 
         println!("RTC mode ({:#x}) : 24hours : {}, bin_mode : {}", reg_b, self.format_24hours, self.bin_mode);
     }
+
+
     /**
+     * Read from the register and performs conversion if needed 
+     * 
      * TODO: Beware, this function always set the NMI flag 
      * however it could be possible to read from the 0x70 port 
      * to keep the NMI disable flag unchanged
+     * 
      */
     pub fn read_register(&self, reg: Register) -> u8 {
-        unsafe {
+        let reg = unsafe {
             self.selection_port.write(ENABLE_NMI | (reg as u8));
-            return self.rw_port.read();
-        }
+            self.rw_port.read()
+        };
+
+        if self.bin_mode { return reg; }
+        else { return RTC::bcd_to_bin(reg)}
     }
+
+
 
     /// Why the fuck would anyone use BCD to represent any number whatsoever ?
     /// 
     /// TODO: this should be in a utils module 
+    /// TODO: why would i want to support 12hours mode ? 
     pub fn bcd_to_bin(val: u8) -> u8 {
         (val >> 4) * 10 + (val & 0xf) 
     }
 
     pub fn print_time(&self)  {
-        if (self.bin_mode || !self.format_24hours) {panic!("Your RTC mode doesn't suck so it is not supported. please use a shitty motherboard/emulator.");}
-        let (hour, min, sec) = (
-            RTC::bcd_to_bin(self.read_register(Register::Hours)),
-            RTC::bcd_to_bin(self.read_register(Register::Minutes)),
-            RTC::bcd_to_bin(self.read_register(Register::Seconds))
-        );
+        if !self.format_24hours
+         {panic!("Your RTC is in 12pm mode. It isn't supported because it sucks, and i don't want to handle it.");}
 
+        let (hour, min, sec) = (
+            self.read_register(Register::Hours),
+            self.read_register(Register::Minutes),
+            self.read_register(Register::Seconds)
+        );
+        
         println!("{:02}:{:02}:{:02}", hour, min, sec);
     }
 
@@ -97,3 +116,17 @@ impl RTC {
 }
 
 
+
+#[test_case]
+pub fn time_no_crash(){
+    let mut rtc = RTC::new();
+    rtc.init();
+    rtc.print_time();
+}
+
+#[test_case]
+pub fn date_no_crash(){
+    let mut rtc = RTC::new();
+    rtc.init();
+    rtc.print_time();
+}

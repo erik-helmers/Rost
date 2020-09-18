@@ -116,6 +116,8 @@ extern "x86-interrupt" fn timer_interrupt_handler(
     _stack_frame: &mut InterruptStackFrame)
 {
     static mut x: u16 = 0;
+    
+    #[cfg(feature="timer_output")]
     print!(".");
     unsafe  {
         asm!("out 32, al", in("al") 0x20 as u8);
