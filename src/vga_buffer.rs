@@ -118,7 +118,7 @@ impl Writer {
     
     pub fn new(buffer: &'static mut Buffer, column: usize, row: usize,
      style: Style) -> Self {
-        let mut writer = Writer {
+        let writer = Writer {
             buffer,
             column,
             row,

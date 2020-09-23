@@ -15,9 +15,32 @@ Most of it for the moment is from Philipp Oppermann's [excellent blog](https://o
 - Screen printing 
 - Serial communication 
 - Keyboard support (using cooperative multitasking) 
-- WIP: PIT programation
-  
+- Partial PIT support
+- Partial RTC support
+
 ## Wishlist 
  - Preemptive multithreading
+ - ATA driver ? 
+ - File system
+ - Syscall 
  - Userland programs
- - Syscalls 
+ 
+
+ ## Install, Build and Run
+
+First off, you _must_ have a nightly rust:
+```sh
+$ rustup update nightly
+$ rustup override nightly 
+```
+
+Then you should install the bootimage crate and its dependency:
+```sh
+$ cargo install bootimage
+$ rustup component add llvm-tools-preview
+```
+
+You can now run it:
+```sh
+$ cargo r
+```

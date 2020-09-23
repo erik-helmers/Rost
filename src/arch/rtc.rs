@@ -6,10 +6,9 @@
  */
 
 
-use crate::arch::port::{Port, ReadonlyPort};
+use crate::arch::port::{Port};
 use crate::println;
 
-use super::instructions;
 
 
 const ENABLE_NMI : u8 = 0x00;

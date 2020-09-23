@@ -8,7 +8,6 @@
 //! To get a reload from a specified frequency 
 
 use crate::arch::port::*;
-use core::f64::*;
 
 const CH0_DATA: Port<u8> = Port::new(0x40);
 const CH1_DATA: Port<u8> = Port::new(0x41);
@@ -104,7 +103,7 @@ impl Channel {
         assert!(freq > MINIMAL_FREQUENCY as f64, "Frequency is too low");
         assert!(freq < NOMINAL_FREQUENCY as f64, "Frequency is too high");
         // We calculate the reload value 
-        let mut rl = (NOMINAL_FREQUENCY / freq) as u16;
+        let rl = (NOMINAL_FREQUENCY / freq) as u16;
         //let remainder = NOMINAL_FREQUENCY % freq;
         //if remainder > freq / 2 { rl += 1; }
 
