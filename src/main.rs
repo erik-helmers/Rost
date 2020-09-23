@@ -28,7 +28,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 
 extern crate alloc;
 
-use alloc::boxed::Box;
+
 use rost::task::{executor::Executor, keyboard::print_keypresses};
 use rost::task::Task;
 
@@ -78,6 +78,12 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     rtc.init();
     rtc.print_date();
     rtc.print_time();
+
+    use rost::{println, serial_print};
+    use rost::utils::fixed_point::*;
+
+    let a = FixedPoint32_32::from((0,0b1011 << 28));    serial_print!("{} = 0.375 ?", a);
+    println!("{} = 0.375 ?", a);
 
     #[cfg(test)]
     test_main();

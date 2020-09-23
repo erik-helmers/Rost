@@ -14,7 +14,8 @@ use core::fmt::Display;
 pub trait Integer<T>: Add<T> + Sub<T> + Mul<T> + Div<T> + Copy + From<u32> {}
 
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+
 pub struct FixedPoint32_32 {
     val: u64    
 }
@@ -35,13 +36,26 @@ impl From<(u32,u32)> for FixedPoint32_32 {
 
 impl Display for FixedPoint32_32 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        //TODO: how to implement fast and accurate decimal representation without floats?
-        let mut frac = self.frac() as f64 / u32::MAX as f64 ;
-        frac *= 1_000_000_000 as f64;
-        write!(f, "{}.{:09.0}", (self.val >> 32) as u32, frac)
+        // TODO: figure out why using println! causes a deadlock when calling write!
+        // voir cours de PF1, méthode de multiplications successives
+        // conversion de 0.{frac base 2} en base 2 vers {frac base 10}
+        let mut acc = FixedPoint32_32::from((0,self.frac()));
+        let mut frac = 0u32;
+        let mut count = 0;
+
+        while acc.frac() != 0 && count <= 10 {
+            acc *= 10;
+            frac = frac*10 + acc.int();   
+            //TODO: not clean
+            acc.val &= u32::MAX as u64;
+            count+=1;
+        }
+
+        write!(f, "{}.{:0width$}", (self.val >> 32) as u32, frac, width=count)
     }
     
 }
+
 impl Add<FixedPoint32_32> for FixedPoint32_32 {
     type Output = Self;
     fn add(self, rhs: FixedPoint32_32) -> Self::Output {
@@ -63,6 +77,12 @@ impl Mul<u32> for FixedPoint32_32 {
     }    
 }
 
+impl MulAssign<u32> for FixedPoint32_32 {
+    fn mul_assign(&mut self, rhs: u32) {
+        self.val *= rhs as u64;
+    }
+}
+
 impl Div<u32> for FixedPoint32_32 {
     type Output = Self;
     fn div(self, rhs: u32) -> Self::Output {
@@ -71,8 +91,26 @@ impl Div<u32> for FixedPoint32_32 {
 }
 
 
+#[test_case]
+pub fn addition_works(){
+    let a = FixedPoint32_32::from((0,1));
+    let b =FixedPoint32_32::from((0,2));
+    let c = FixedPoint32_32::from((0,3));
+    assert_eq!(a+b, c);
+}
 
+#[test_case]
+pub fn fmt_works(){
+    use crate::alloc::string::ToString;
 
+    let a = FixedPoint32_32::from((0,0b011 << 29));
+    let b = FixedPoint32_32::from((0,0b1011 << 28));
+
+    assert_eq!("0.375", a.to_string());  
+    assert_eq!("0.6875", b.to_string());
+    
+    
+}
 
 
 /* pub struct FixedPoint<T: Integer<T>> {
