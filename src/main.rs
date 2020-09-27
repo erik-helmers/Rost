@@ -5,7 +5,7 @@
 #![reexport_test_harness_main = "test_main"]
 
 
-use rost::{println};
+use rost::{println, print};
 use bootloader::BootInfo;
 
 
@@ -29,17 +29,6 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 extern crate alloc;
 
 
-use rost::task::{executor::Executor, keyboard::print_keypresses};
-use rost::task::Task;
-
-async fn fun() -> u32{
-    3
-}
-
-async fn some_task(){
-    let num =  fun().await;
-    println!("Task found code {}", num);
-}
 
 fn mem_init(boot_info: &'static BootInfo){
     
@@ -61,11 +50,44 @@ fn mem_init(boot_info: &'static BootInfo){
                 .expect("heap alloc failed");
 }
 
+use rost::multitasking::{Task, create_task, Stack, switch_task, init_multitasking};
+use alloc::boxed::Box;
+use alloc::rc::Rc;
+
+use lazy_static::lazy_static;
+use spin::Mutex;
+
+
+
+
+static mut  T1: *mut Task = 0 as *mut Task;
+static mut  T2: *mut Task = 0 as *mut Task;
+
+
+pub fn task_1(){
+    for i in 0..10 {
+        println!("In Task 1 !");
+    
+        switch_task(unsafe {&mut *T1},unsafe {&mut  *T2});    
+    }
+    println!("Finished task 1.");
+
+}
+
+pub fn task_2(){
+    println!("In task 2 !");
+    
+    switch_task(unsafe {&mut *T2},unsafe {&mut  *T1});    
+    println!("Finished task 2.");
+}
+
+
 use rost::arch::pit::*;
 use rost::arch::rtc::{RTC, Register};
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
-    
+
+
     let mut rtc: RTC = RTC::new();
 
     rost::init();
@@ -79,23 +101,40 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     rtc.print_date();
     rtc.print_time();
 
-    use rost::{println, serial_print};
-    use rost::utils::fixed_point::*;
+    let stack  =  Stack::new(4096);
+    let stackbase = stack.array.first().expect("") as *const u8 as usize;
+    println!("Stack start addr: {:#x}, stacktop: {:#x}", stackbase, stack.top_ptr() as usize);
 
-    let a = FixedPoint32_32::from((0,0b1011 << 28));    serial_print!("{} = 0.375 ?", a);
-    println!("{} = 0.375 ?", a);
+
+    let kern_tsk =&mut *unsafe {init_multitasking()};
+
+    // let's init the tasks :
+    unsafe {
+        let t1 = &mut *create_task(task_1);
+        let t2 = &mut *create_task(task_2);
+        println!("t1 : {:#x}, t2: {:#x}", &*t1 as *const Task as  usize, &*t2 as *const Task as usize );
+        T1 = t1 as *mut Task;
+        T2 = t2 as *mut Task;
+        println!("T1 : {:#x}, T2: {:#x}", T1 as usize, T2 as usize );
+        print!("init jmped to task1: \n\t\t");
+
+        switch_task(kern_tsk,&mut *T1);
+    
+    
+
+    }     
 
     #[cfg(test)]
     test_main();
 
     let mut ch1 = unsafe { Channel::new(0) };
     ch1.set_frequency(OperatingMode::RateGenerator, 20 as f64);
-    //rost::hlt_loop();
+    rost::hlt_loop();
     
-    let mut executor = Executor::new();
-    executor.spawn(Task::new(some_task()));
-    executor.spawn(Task::new(print_keypresses()));
-    executor.run();   
+    //let mut executor = Executor::new();
+    //executor.spawn(Task::new(some_task()));
+    //executor.spawn(Task::new(print_keypresses()));
+    //executor.run();   
 }
 
 use core::panic::PanicInfo;
