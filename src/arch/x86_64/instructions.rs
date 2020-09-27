@@ -60,3 +60,18 @@ pub unsafe fn indw(port:u16) -> u32 {
     ret
 }
 
+// Register reading
+/// Read ESP 
+pub unsafe fn rsp() -> usize {
+    let ret: u64;
+    asm!("mov {}, rsp", out(reg) ret);
+    ret as usize 
+}
+
+// Here we really need the inline(always) 
+// because we are changing the stacktop address
+#[inline(always)]
+/// Set ESP 
+pub unsafe fn set_rsp(rsp: usize) {
+    asm!("mov rsp, {}", in(reg) rsp);
+}
