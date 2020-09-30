@@ -14,6 +14,7 @@
 #![feature(const_panic)]
 #![feature(new_uninit)]
 #![feature(naked_functions)]
+#![feature(global_asm)]
 
 pub mod utils;
 pub mod memory;

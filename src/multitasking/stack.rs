@@ -4,7 +4,7 @@ pub struct Stack {
     pub array: Box<[u8]>,
     /// Stores the index of the top (bottom) of the stack.
     /// This an offset to the base array 
-    top: *mut u8 
+    pub top: *mut u8 
 }
 
 
@@ -16,15 +16,11 @@ impl Stack {
     /// Creates a new non zero sized stack 
     pub fn new(size: usize) -> Self {
         // We allocate a new stack
-        let mut array:Box<[u8]> = Box::from(vec![0u8; size]) ;
+        let mut array:Box<[u8]> = Box::from(vec![0xBDu8; size]) ;
         let top = unsafe{array.as_mut_ptr().add(size)};
         Self{array, top}
     }
 
-
-    pub fn set_top_ptr(&mut self, top: *mut u8){
-        self.top = top;
-    } 
 
     pub fn top_ptr(&self) -> *const u8 {
         self.top

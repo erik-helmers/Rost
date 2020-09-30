@@ -65,20 +65,20 @@ static mut  T2: *mut Task = 0 as *mut Task;
 
 
 pub fn task_1(){
-    for i in 0..10 {
+    loop {
         println!("In Task 1 !");
-    
         switch_task(unsafe {&mut *T1},unsafe {&mut  *T2});    
+        }
     }
-    println!("Finished task 1.");
 
-}
 
 pub fn task_2(){
-    println!("In task 2 !");
+    loop {
+        println!("In task 2 !");
     
-    switch_task(unsafe {&mut *T2},unsafe {&mut  *T1});    
-    println!("Finished task 2.");
+        switch_task(unsafe {&mut *T2},unsafe {&mut  *T1});    
+
+    }
 }
 
 

@@ -93,11 +93,24 @@ pub unsafe fn create_task(func: fn()) -> Box<Task>{
 pub fn switch_task<'a>(cur:&mut Task, next:&mut Task){
 
     use x86_64::instructions::interrupts;
-    //crate::println!("{:#x}", next.stack.top_ptr() as usize);
+
+    // Uncommenting this line produces a page fault when 
+    // executing the second context  switch on the same task.
+    // It turns out that this is because the future rip value
+    // (0x0020fd1c) which is stored on the T1 stack 
+    // (0x4444beef1dd0 for a 4096 stack at 0x4444beef2060)
+    // get overriden by some random value (0xc). 
+    // Is this is a stack overflow ?
+
+    //crate::println!("cur:{:#x} next {:#x}", cur.stack.top as usize, next.stack.top as usize);
+
     interrupts::without_interrupts(|| {unsafe { 
 
-        crate::arch::task_switch::switch_task(cur, next);
-     }
+        crate::arch::task_switch::context_switch(
+            // This is a double level of indirection (pointer of pointer)
+            (&mut cur.stack.top) as *mut *mut u8 as *mut u64, 
+            (&mut next.stack.top) as *mut *mut u8 as *mut u64);
+     } 
     });
 
 }

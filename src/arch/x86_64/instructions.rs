@@ -62,6 +62,7 @@ pub unsafe fn indw(port:u16) -> u32 {
 
 // Register reading
 /// Read ESP 
+#[inline(always)]
 pub unsafe fn rsp() -> usize {
     let ret: u64;
     asm!("mov {}, rsp", out(reg) ret);
