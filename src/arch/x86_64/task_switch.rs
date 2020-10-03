@@ -1,6 +1,4 @@
-use crate::multitasking::{Task};
 
-use crate::println;
 
 global_asm!(include_str!("context_switch.s"));
 

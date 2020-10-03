@@ -1,5 +1,7 @@
 #![no_std]
 
+#![allow(unused_unsafe)]
+
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![test_runner(crate::test_runner)]
@@ -108,7 +110,7 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 /// Entry point for `cargo test`
 
 use bootloader::BootInfo;
-fn mem_init(boot_info: &'static BootInfo){
+pub fn mem_init(boot_info: &'static BootInfo){
     
     
     use x86_64::{VirtAddr};

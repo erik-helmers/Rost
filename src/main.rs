@@ -29,34 +29,7 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 extern crate alloc;
 
 
-
-fn mem_init(boot_info: &'static BootInfo){
-    
-    
-    use x86_64::{structures::paging::{MapperAllSizes, Page}, VirtAddr};
-    use rost::memory;
-    use rost::memory::BootInfoFrameAllocator;
-    use rost::allocator;
-
-    let phys_mem_offset = VirtAddr::new(boot_info.physical_memory_offset);
-
-    let mut mapper = unsafe { memory::init(phys_mem_offset) };
-    let mut frame_allocator = unsafe {
-        BootInfoFrameAllocator::init(&boot_info.memory_map)
-    };
-
-
-    allocator::init_heap(&mut mapper, &mut frame_allocator)
-                .expect("heap alloc failed");
-}
-
 use rost::multitasking::{Task, create_task, Stack, switch_task, init_multitasking};
-use alloc::boxed::Box;
-use alloc::rc::Rc;
-
-use lazy_static::lazy_static;
-use spin::Mutex;
-
 
 
 
@@ -83,7 +56,7 @@ pub fn task_2(){
 
 
 use rost::arch::pit::*;
-use rost::arch::rtc::{RTC, Register};
+use rost::arch::rtc::{RTC};
 #[no_mangle]
 pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
@@ -95,11 +68,13 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
     //unsafe { rost::arch::instructions::cli();}
 
-    mem_init(boot_info);
+    rost::mem_init(boot_info);
 
     rtc.init();
     rtc.print_date();
     rtc.print_time();
+
+
 
     let stack  =  Stack::new(4096);
     let stackbase = stack.array.first().expect("") as *const u8 as usize;
@@ -107,7 +82,7 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
 
 
     let kern_tsk =&mut *unsafe {init_multitasking()};
-
+/* 
     // let's init the tasks :
     unsafe {
         let t1 = &mut *create_task(task_1);
@@ -119,10 +94,7 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
         print!("init jmped to task1: \n\t\t");
 
         switch_task(kern_tsk,&mut *T1);
-    
-    
-
-    }     
+    }      */
 
     #[cfg(test)]
     test_main();
