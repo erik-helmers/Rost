@@ -29,28 +29,23 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 extern crate alloc;
 
 
-use rost::multitasking::{Task, create_task, Stack, switch_task, init_multitasking};
+use rost::multitasking::{Task, create_task, Stack, scheduler::schedule, init_multitasking};
 
-
-
-static mut  T1: *mut Task = 0 as *mut Task;
-static mut  T2: *mut Task = 0 as *mut Task;
 
 
 pub fn task_1(){
     loop {
         println!("In Task 1 !");
-        switch_task(unsafe {&mut *T1},unsafe {&mut  *T2});    
-        }
+        schedule();
     }
+}
+
 
 
 pub fn task_2(){
     loop {
         println!("In task 2 !");
-    
-        switch_task(unsafe {&mut *T2},unsafe {&mut  *T1});    
-
+        schedule();
     }
 }
 
@@ -80,21 +75,18 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     let stackbase = stack.array.first().expect("") as *const u8 as usize;
     println!("Stack start addr: {:#x}, stacktop: {:#x}", stackbase, stack.top_ptr() as usize);
 
-
-    let kern_tsk =&mut *unsafe {init_multitasking()};
-/* 
-    // let's init the tasks :
     unsafe {
-        let t1 = &mut *create_task(task_1);
-        let t2 = &mut *create_task(task_2);
-        println!("t1 : {:#x}, t2: {:#x}", &*t1 as *const Task as  usize, &*t2 as *const Task as usize );
-        T1 = t1 as *mut Task;
-        T2 = t2 as *mut Task;
-        println!("T1 : {:#x}, T2: {:#x}", T1 as usize, T2 as usize );
-        print!("init jmped to task1: \n\t\t");
+        init_multitasking();
 
-        switch_task(kern_tsk,&mut *T1);
-    }      */
+        create_task(task_1);
+        create_task(task_2);
+        
+        loop {
+            println!("In kernel.");
+            schedule();
+        }
+    }
+
 
     #[cfg(test)]
     test_main();

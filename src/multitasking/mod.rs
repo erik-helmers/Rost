@@ -1,45 +1,32 @@
-use core::sync::atomic::{AtomicU64, Ordering};
+
 use crate::alloc::boxed::Box;
 
 mod stack;
+pub mod scheduler;
+mod tasks;
+
+use tasks::*;
+
+
+pub use tasks::Task; 
 pub use stack::Stack;
 
 
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(transparent)]
-pub struct TaskId(u64);
+use spin::Mutex;
+use core::cell::RefCell;
+use crate::alloc::collections::BTreeMap;
 
-#[repr(u8)]
-pub enum TaskState {
-    Created, 
-    Waiting,
-    Running,
-    Zombie
-}
+pub (self) static TASK_MAP : Mutex<BTreeMap<TaskId, RefCell<Task>>> = Mutex::new(BTreeMap::new());
 
-impl TaskId {
-    pub fn new() -> Self {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(1);
-        TaskId(NEXT_ID.fetch_add(1, Ordering::Relaxed))
-    }
-}
+/// TaskId of the current running task
+pub (self) static CURRENT_TASK: Mutex<TaskId> = Mutex::new(TaskId::default());
 
-
-#[repr(C)]
-/// Represent a TCB/context/Task
-pub struct Task  {
-    pub id: TaskId,
-
-    pub cr3: usize,
-    pub state: TaskState,
-    pub stack: Stack
-}
 
 
 /// Set the current running task as a valid one 
 /// Dropping this task will result in strange behavior
-pub unsafe fn init_multitasking() -> Box<Task> {
+pub unsafe fn init_multitasking() -> TaskId {
 
     let stack  = Stack::new_zero_sized();
 
@@ -53,8 +40,15 @@ pub unsafe fn init_multitasking() -> Box<Task> {
         cr3:0,
         state: TaskState::Running,
     };
-    Box::new(cur_task)
+    
+    let id = cur_task.id;
 
+    let res = (*TASK_MAP.lock()).insert(cur_task.id, RefCell::new(cur_task));
+    assert!(res.is_none(), "Task already existed !");
+
+    scheduler::init_scheduler(id);
+
+    return id;
 }
 
 
@@ -63,8 +57,7 @@ pub unsafe fn init_multitasking() -> Box<Task> {
 //TODO: move it somewhere else ?
 const STACK_SIZE: usize = 4 * crate::utils::units::KiB;
 
-
-pub unsafe fn create_task(func: fn()) -> Box<Task>{
+pub unsafe fn create_task(func: fn()) -> TaskId {
 
     let mut stack = Stack::new(STACK_SIZE);
     
@@ -84,16 +77,52 @@ pub unsafe fn create_task(func: fn()) -> Box<Task>{
         cr3: 0,
         state: TaskState::Created,
     };
-    Box::new(task)
+    let id = task.id;
+
+    let res = (*TASK_MAP.lock()).insert(task.id, RefCell::new(task));
+    assert!(res.is_none(), "Task already existed !");
+
+    scheduler::register_task(id);
+
+    return id;
+
 
 }
  
 
 
-pub fn switch_task<'a>(cur:&mut Task, next:&mut Task){
+pub fn switch_task<'a>(next:TaskId){
 
-    use x86_64::instructions::interrupts;
+    // Yes this function sucks.
+    // But i'm struggling to pass those field ptrs without using the stack 
 
+    // The current_task is invalid until the switch happens
+    let cur = *CURRENT_TASK.lock();
+    *CURRENT_TASK.lock() = next;
+
+
+    let lock = TASK_MAP.lock();
+
+    let cur_top_ptr;
+    let next_top_ptr;
+    {
+        let tasks = &*lock;
+
+        let cur = tasks.get(&cur).unwrap();
+        let mut cur = cur.borrow_mut();
+        cur_top_ptr = &mut cur.stack.top as *mut usize;
+        drop(cur);
+
+        let next = tasks.get(&next).expect("The scheduler provided an invalid taskid.");
+        let mut next = next.borrow_mut();
+        next_top_ptr = &mut next.stack.top as *mut usize;    
+        drop(next);
+
+    }
+    // Make sur to drop this lock
+    drop(lock);
+
+    
     // Uncommenting this line produces a page fault when 
     // executing the second context  switch on the same task.
     // It turns out that this is because the future rip value
@@ -103,13 +132,14 @@ pub fn switch_task<'a>(cur:&mut Task, next:&mut Task){
     // Is this is a stack overflow ?
 
     //crate::println!("cur:{:#x} next {:#x}", cur.stack.top as usize, next.stack.top as usize);
-
+    use x86_64::instructions::interrupts;
     interrupts::without_interrupts(|| {unsafe { 
 
         crate::arch::task_switch::context_switch(
-            // This is a double level of indirection (pointer of pointer)
-            (&mut cur.stack.top) as *mut *mut u8 as *mut u64, 
-            (&mut next.stack.top) as *mut *mut u8 as *mut u64);
+            // This is a double level of indirection
+            // that is, we need a pointer to the stack_top pointer
+            cur_top_ptr as *mut u64,
+            next_top_ptr as *mut u64);
      } 
     });
 

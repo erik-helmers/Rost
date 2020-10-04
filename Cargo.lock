@@ -201,6 +201,7 @@ dependencies = [
  "bootloader",
  "conquer-once",
  "crossbeam-queue",
+ "crossbeam-utils",
  "futures-util",
  "lazy_static",
  "linked_list_allocator",
@@ -210,7 +211,7 @@ dependencies = [
  "spin",
  "uart_16550",
  "volatile",
- "x86_64",
+ "x86_64 0.12.1",
 ]
 
 [[package]]
@@ -252,7 +253,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e58fc40dc1712664fc9b0a7bd8ca2f21ab49960924fb245a80a05e1e92f3dfe9"
 dependencies = [
  "bitflags",
- "x86_64",
+ "x86_64 0.11.8",
 ]
 
 [[package]]
@@ -272,6 +273,16 @@ name = "x86_64"
 version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fa1f02f6b33489502afe477f7d428cfa1eee22d4a10966e95dfeed96c523d46"
+dependencies = [
+ "bit_field",
+ "bitflags",
+]
+
+[[package]]
+name = "x86_64"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "238a5798f77641af3c4f242bf985807f312a480cd4e35ed7255fad4b2ccb9d4f"
 dependencies = [
  "bit_field",
  "bitflags",

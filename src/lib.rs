@@ -17,6 +17,9 @@
 #![feature(new_uninit)]
 #![feature(naked_functions)]
 #![feature(global_asm)]
+#![feature(const_btree_new)]
+#![feature(option_expect_none)]
+
 
 pub mod utils;
 pub mod memory;
