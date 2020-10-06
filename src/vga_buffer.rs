@@ -218,8 +218,9 @@ impl Writer {
     /// https://wiki.osdev.org/Text_Mode_Cursor#Without_the_BIOS
     pub fn disable_cursor(&self){
         unsafe {
-            crate::arch::instructions::outb(0x3D4, 0x0A);
-            crate::arch::instructions::outb(0x3D5, 0x20);            
+            // FIXME: change this to be plateform agnostic
+            crate::utils::x86_64::instructions::outb(0x3D4, 0x0A);
+            crate::utils::x86_64::instructions::outb(0x3D5, 0x20);            
         }
     }
 }
@@ -272,4 +273,3 @@ pub fn test_println_scroll(){
     });
     
 }
-

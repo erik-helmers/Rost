@@ -75,18 +75,8 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     let stackbase = stack.array.first().expect("") as *const u8 as usize;
     println!("Stack start addr: {:#x}, stacktop: {:#x}", stackbase, stack.top_ptr() as usize);
 
-    unsafe {
-        init_multitasking();
-
-        create_task(task_1);
-        create_task(task_2);
-        
-        loop {
-            println!("In kernel.");
-            schedule();
-        }
-    }
-
+    println!("CPU Vendor {}", rost::utils::x86_64::cpuid::cpu_vendor());
+    
 
     #[cfg(test)]
     test_main();
@@ -99,6 +89,8 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     //executor.spawn(Task::new(some_task()));
     //executor.spawn(Task::new(print_keypresses()));
     //executor.run();   
+
+
 }
 
 use core::panic::PanicInfo;
