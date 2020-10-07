@@ -75,9 +75,21 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
     let stackbase = stack.array.first().expect("") as *const u8 as usize;
     println!("Stack start addr: {:#x}, stacktop: {:#x}", stackbase, stack.top_ptr() as usize);
 
-    println!("CPU Vendor {}", rost::utils::x86_64::cpuid::cpu_vendor());
+    use rost::utils::x86_64::cpuid::{*, Features};
+    use rost::utils::x86_64::instructions;
     
+    println!("\n\nCPU Info: ");
+    
+    println!("Vendor {}", cpu_vendor());
+    
+    println!("CPUID EAX Max Val {:#x}", highest_leaf());
 
+    println!("Supports MSRs: {:?}", supports(Features::MSR));
+    println!("Supports APIC: {:?}", supports(Features::APIC));
+
+    println!("LOCAL_APIC_MSR {:#b}", unsafe { instructions::get_msr(0x1B) & 0x800});
+    println!("\n\n");
+    
     #[cfg(test)]
     test_main();
 

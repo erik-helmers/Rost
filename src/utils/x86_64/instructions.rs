@@ -76,3 +76,17 @@ pub unsafe fn rsp() -> usize {
 pub unsafe fn set_rsp(rsp: usize) {
     asm!("mov rsp, {}", in(reg) rsp);
 }
+
+/// Read MSR 
+/// For more info on MSRs
+/// https://sandpile.org/x86/msr.htm
+/// https://wiki.osdev.org/Model_Specific_Registers
+/// 
+#[inline(always)]
+pub unsafe fn get_msr(msr: u32) -> u64
+{
+    let (lo,hi) : (u64, u64);
+    asm!("rdmsr", in("cx") msr, out("ax") lo, out("dx") hi);
+    return (hi << 32) | lo;
+}
+

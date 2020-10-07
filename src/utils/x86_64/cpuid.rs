@@ -1,37 +1,41 @@
 use core::str::from_utf8;
 use crate::alloc::boxed::Box;
 
-#[allow(non_camel_case_types)]
-pub enum FeatFlagsECX {
-    SSE3         = 1 << 0, 
-    PCLMUL       = 1 << 1,
-    DTES64       = 1 << 2,
-    MONITOR      = 1 << 3,  
-    DS_CPL       = 1 << 4,  
-    VMX          = 1 << 5,  
-    SMX          = 1 << 6,  
-    EST          = 1 << 7,  
-    TM2          = 1 << 8,  
-    SSSE3        = 1 << 9,  
-    CID          = 1 << 10,
-    FMA          = 1 << 12,
-    CX16         = 1 << 13, 
-    ETPRD        = 1 << 14, 
-    PDCM         = 1 << 15, 
-    PCIDE        = 1 << 17, 
-    DCA          = 1 << 18, 
-    SSE4_1       = 1 << 19, 
-    SSE4_2       = 1 << 20, 
-    x2APIC       = 1 << 21, 
-    MOVBE        = 1 << 22, 
-    POPCNT       = 1 << 23, 
-    AES          = 1 << 25, 
-    XSAVE        = 1 << 26, 
-    OSXSAVE      = 1 << 27, 
-    AVX          = 1 << 28,
-}
 
-pub enum FeatFlagsEDX{
+
+// The EDX flags are in the low bytes
+// The ECX flags are in the high bytes
+#[allow(non_camel_case_types)]
+#[repr(u64)]
+pub enum Features {
+    // Those are all the flags in ECX
+    SSE3         = 1 << (0  + 32),
+    PCLMUL       = 1 << (1  + 32),
+    DTES64       = 1 << (2  + 32),
+    MONITOR      = 1 << (3  + 32), 
+    DS_CPL       = 1 << (4  + 32), 
+    VMX          = 1 << (5  + 32), 
+    SMX          = 1 << (6  + 32), 
+    EST          = 1 << (7  + 32), 
+    TM2          = 1 << (8  + 32),  
+    SSSE3        = 1 << (9  + 32),  
+    CID          = 1 << (10 + 32),
+    FMA          = 1 << (12 + 32),
+    CX16         = 1 << (13 + 32), 
+    ETPRD        = 1 << (14 + 32), 
+    PDCM         = 1 << (15 + 32), 
+    PCIDE        = 1 << (17 + 32), 
+    DCA          = 1 << (18 + 32), 
+    SSE4_1       = 1 << (19 + 32), 
+    SSE4_2       = 1 << (20 + 32), 
+    x2APIC       = 1 << (21 + 32), 
+    MOVBE        = 1 << (22 + 32), 
+    POPCNT       = 1 << (23 + 32), 
+    AES          = 1 << (25 + 32), 
+    XSAVE        = 1 << (26 + 32), 
+    OSXSAVE      = 1 << (27 + 32), 
+    AVX          = 1 << (28 + 32),
+    // Those are the flags in EDX
     FPU          = 1 << 0,  
     VME          = 1 << 1,  
     DE           = 1 << 2,  
@@ -65,21 +69,52 @@ pub enum FeatFlagsEDX{
 }
 
 
+
+pub unsafe fn  __cpuid(level: u32) -> [u32; 4]{
+    let mut v = [0u32; 4];
+    unsafe {
+        asm!("cpuid", in("ax") level, 
+        lateout("ax") v[0], lateout("bx") v[1], lateout("cx") v[2], lateout("dx") v[3]);
+    }
+    return v;
+}
+
+
 /**
  * Safety: expects the CPU to support CPUID
  */
 pub fn cpu_vendor() -> Box<str> {
 
     unsafe {
-        let mut v = [0u32;3];
-
-        asm!("mov eax, 0x0
-              cpuid",
-            out("bx")v[0], out("dx")v[1], out("cx")v[2]);
-        
+        let v = __cpuid(0);
+        // Thats not very nice, i know
+        let v = [v[1],v[3],v[2]];
         let v: [u8;12] = core::mem::transmute(v);
         let s = from_utf8(&v).unwrap();
         return Box::from(s);
     }
-
 }
+
+/**
+ * Safety: expects the CPU to support CPUID
+ */
+pub fn highest_leaf() -> u32 {
+    return unsafe { __cpuid(0)[0] };
+}
+
+
+pub fn feature_set() -> (u32,u32) {
+    let v = unsafe { __cpuid(1)};
+    return (v[2],v[3]);
+}
+
+pub fn supports(f: Features) -> bool{
+    let flag = {
+        let (cx, dx) = feature_set() ;
+        ((cx as u64) << 32) | (dx as u64)
+    };
+
+    return ((f as u64) & flag) != 0;
+}
+
+
