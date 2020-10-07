@@ -7,7 +7,7 @@
 //! 
 //! To get a reload from a specified frequency 
 
-use crate::arch::port::*;
+use crate::arch::port::Port;
 
 const CH0_DATA: Port<u8> = Port::new(0x40);
 const CH1_DATA: Port<u8> = Port::new(0x41);
