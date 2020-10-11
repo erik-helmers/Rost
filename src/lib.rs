@@ -22,6 +22,7 @@
 
 
 pub mod utils;
+pub mod devices;
 pub mod memory;
 pub mod gdt;
 pub mod vga_buffer;
