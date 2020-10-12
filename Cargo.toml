@@ -8,7 +8,7 @@ edition = "2018"
 # llvm-libunwind = true
 
 [features]
-default = ["disable_cursor"]
+default = ["disable_cursor", "timer_output"]
 
 timer_output = []
 disable_cursor = []
@@ -23,7 +23,6 @@ bootloader = { version = "0.9.8", features = ["map_physical_memory"]}
 volatile = "0.3.0" # diff = 1
 spin = "0.5.2" # diff = 4
 uart_16550 = "0.2.7"
-pic8259_simple = "0.2.0"
 pc-keyboard = "0.5.1"
 linked_list_allocator = "0.8.4"
 
@@ -58,7 +57,7 @@ features = ["alloc"]
 [package.metadata.bootimage]
 test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04", "-serial", "stdio", "-display", "none"]
 # -display", "none"]
-run-args = ["-S", "-gdb", "tcp::3333"]
+#run-args = ["-S", "-gdb", "tcp::3333"]
 test-success-exit-code = 33         # (0x10 << 1) | 1
 
 [package.metadata.bootloader]

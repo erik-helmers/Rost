@@ -46,12 +46,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "654fb2472cc369d311c547103a1fa81d467bef370ae7a0680f65939895b1182a"
 
 [[package]]
-name = "cpuio"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d531514efb06912141fa65967447de805691b685a7565c87d1765afe34a98aa7"
-
-[[package]]
 name = "crossbeam-queue"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -136,15 +130,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c6f2d937e3b8d63449b01401e2bae4041bc9dd1129c2e3e0d239407cf6635ac"
 
 [[package]]
-name = "pic8259_simple"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af2a5497fb8e59bf8015f67b7dff238d75ef445e03f23edac24ac3a8f09be952"
-dependencies = [
- "cpuio",
-]
-
-[[package]]
 name = "pin-project"
 version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -206,7 +191,6 @@ dependencies = [
  "lazy_static",
  "linked_list_allocator",
  "pc-keyboard",
- "pic8259_simple",
  "rlibc",
  "spin",
  "uart_16550",

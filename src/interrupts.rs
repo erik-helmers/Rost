@@ -1,10 +1,10 @@
-use crate::{println};
+use crate::{print, println};
 
 use crate::gdt;
 
 use x86_64::structures::idt::{InterruptStackFrame, InterruptDescriptorTable};
 use lazy_static::lazy_static;
-use pic8259_simple::ChainedPics;
+use crate::devices::pic::ChainedPics;
 use spin;
 
 
@@ -20,6 +20,11 @@ pub static PICS: spin::Mutex<ChainedPics> =
 pub enum InterruptIndex {
     Timer = PIC_1_OFFSET,
     Keyboard,
+}
+
+pub fn init(){
+    init_idt();
+    unsafe { PICS.lock().initialize() };
 }
 
 impl InterruptIndex {
@@ -115,13 +120,12 @@ extern "x86-interrupt" fn double_fault_handler(
 extern "x86-interrupt" fn timer_interrupt_handler(
     _stack_frame: &mut InterruptStackFrame)
 {
-    
     #[cfg(feature="timer_output")]
     print!(".");
-    
+
     unsafe  {
-        asm!("out 32, al", in("al") 0x20 as u8);
-        //PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
+        //asm!("out 32, al", in("al") 0x20 as u8);
+        PICS.lock().notify_end_of_interrupt(InterruptIndex::Timer.as_u8());
     }
 }
 
@@ -132,10 +136,6 @@ use x86_64::instructions::port::*;
 extern "x86-interrupt" fn keyboard_interrupt_handler(
     _stack_frame: &mut InterruptStackFrame)
 {
-
-    
-    
-
     let mut port = Port::new(0x60);
     let scancode = unsafe { port.read() };
 
