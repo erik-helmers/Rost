@@ -6,7 +6,12 @@
 #![reexport_test_harness_main = "test_main"]
 
 #![feature(asm)]
+#![feature(global_asm)]
+
 extern crate rlibc;
+
+pub mod arch;
+
 
 
 #[no_mangle]
@@ -36,7 +41,7 @@ where
 }
 
 
-pub fn test_runner(tests: &[&dyn Testable]) {
+pub fn test_runner(_tests: &[&dyn Testable]) {
 }
 
 #[panic_handler]

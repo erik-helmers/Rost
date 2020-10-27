@@ -6,6 +6,9 @@
     "linker-flavor": "ld.lld",
     "linker": "rust-lld",
 
+    "pre-link-args": {
+        "ld.lld": ["-Tsrc/arch/x86_64/linker.ld"]
+    },
 
     "target-endian": "little",
     "target-pointer-width": "64",
