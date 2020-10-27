@@ -6,13 +6,7 @@ rost := target/$(target)/debug/librost_nbs.a
 kernel := build/kernel-$(arch).bin
 iso := build/os-$(arch).iso
 
-
-linker_script := src/arch/$(arch)/boot/linker.ld
 grub_cfg := src/arch/$(arch)/boot/grub.cfg
-
-assembly_source_files := $(wildcard src/arch/$(arch)/boot/*.asm)
-assembly_object_files := $(patsubst src/arch/$(arch)/boot/%.asm, \
-		build/arch/$(arch)/boot/%.o, $(assembly_source_files))
 
 .PHONY: all clean run iso kernel
 
@@ -37,15 +31,8 @@ $(iso): $(kernel) $(grub_cfg)
 		@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
 		@rm -r build/isofiles
 
-$(kernel): kernel $(rost) $(assembly_object_files) $(linker_script)
-		@ld -n -T $(linker_script) -o $(kernel) \
-				$(assembly_object_files) $(rost)
+$(kernel): kernel 
+		@cp $(rost) $(kernel)
 
 kernel:
 		@cargo build --lib
-
-# Compile assembly files
-build/arch/$(arch)/boot/%.o: src/arch/$(arch)/boot/%.asm 
-		@mkdir -p $(shell dirname $@)
-		@nasm -felf64 $< -o $@
-	
