@@ -13,5 +13,3 @@ rlibc = "1.0"
 default = [ "x86_64" ]
 x86_64 = []
 
-[lib]
-crate-type = ["staticlib"]

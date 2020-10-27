@@ -1,7 +1,7 @@
 arch ?= x86_64
 
 target ?= $(arch)-rost
-rost := target/$(target)/debug/librost_nbs.a
+rost := target/$(target)/debug/rost_nbs
 
 kernel := build/kernel-$(arch).bin
 iso := build/os-$(arch).iso

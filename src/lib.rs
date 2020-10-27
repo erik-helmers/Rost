@@ -13,20 +13,6 @@ extern crate rlibc;
 pub mod arch;
 
 
-
-#[no_mangle]
-pub extern fn _start() {
-    unsafe {
-        let ptr= 0xb8000 as *mut u32;
-        for i in 0..100 {
-            *(ptr.offset(i)) = 0x07690748;
-
-        }
-    }
-    loop{}    
-}
-
-
 pub trait Testable {
     fn run(&self) -> ();
 }
@@ -44,6 +30,7 @@ where
 pub fn test_runner(_tests: &[&dyn Testable]) {
 }
 
+#[cfg(test)]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop{}
