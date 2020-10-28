@@ -32,7 +32,8 @@ $(iso): $(kernel) $(grub_cfg)
 		@rm -r build/isofiles
 
 $(kernel): kernel 
+		@mkdir -p build
 		@cp $(rost) $(kernel)
 
 kernel:
-		@cargo build --lib
+		@cargo build 
