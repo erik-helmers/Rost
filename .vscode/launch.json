@@ -1,0 +1,19 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "custom",
+            "name": "Debug with QEMU",
+            "targetCreateCommands": [
+                "target create ${workspaceFolder}/target/x86_64-rost/debug/rost_nbs"
+            ],
+            "processCreateCommands": [
+                "gdb-remote 3333"
+            ],
+        },
+    ]
+}

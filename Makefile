@@ -19,7 +19,7 @@ run: $(iso)
 		@qemu-system-x86_64 -cdrom $(iso)
 
 debug: $(iso)
-		@qemu -S -gdb tcp::3333
+		@qemu-system-x86_64 -S -gdb tcp::3333 -cdrom $(iso)
 iso: $(iso)
 
 
