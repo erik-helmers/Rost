@@ -11,6 +11,7 @@
 #[allow(unused_imports)]
 use rost_nbs;
 
+pub static MAGIC: u32 = 0xDEADBEEF;
 
 
 #[no_mangle]
@@ -18,8 +19,7 @@ pub extern fn _start() {
     unsafe {
         let ptr= 0xb8000 as *mut u32;
         for i in 0..100 {
-            *(ptr.offset(i)) = 0x07690748;
-
+            *(ptr.offset(i)) = MAGIC;
         }
     }
     loop{}    

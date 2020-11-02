@@ -22,5 +22,6 @@
     "disable-redzone": true,
     "features": "-mmx,-sse,+soft-float",
 
-    "relocation-model": "static"
+    "relocation-model": "static",
+    "code-model": "kernel"
 }
