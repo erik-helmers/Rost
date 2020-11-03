@@ -10,6 +10,7 @@
 _init:
     // I don't really understand why lea esp, stack_top
     // works whereas mov gives invalid result 
+    //  -> Its because the correct syntax is `mov esp, offset boot_stack_top`
     lea esp, boot_stack_top
 
 
@@ -22,23 +23,16 @@ _init:
     call clear_page
     mov eax, offset p3
     call clear_page
-    mov eax, offset p2
-    call clear_page
-    mov eax, offset p1
-    call clear_page
     
     call init_ident_pages
-    //call set_up_page_tables 
+
     call enable_paging
-
-    mov dword PTR [0xb8000], 0x2f4b2f4f
+    lgdt [gdt64.pointer]
     
-    .busy: jmp .busy
-    .extern _start
-    call _start
+    mov dword PTR [0xb8000], 0x2f4b2f4f
 
-
-
+    ljmp 0x8, offset _init64
+    
 check_multiboot:
     cmp eax, 0x36d76289
     jne .no_multiboot
@@ -116,20 +110,18 @@ clear_page:
     
 
 
-
+// Setup identity paging up to 4GiB
 init_ident_pages: 
     mov eax, offset p3
     or  eax, 0b11
     mov dword ptr [p4], eax
     
-    mov eax, 0
-    or  eax, 0b10000011
-    mov dword ptr [p3], eax  
-    mov dword ptr [p3+0x40000000], eax
-    mov dword ptr [p3+0x80000000], eax
-    mov dword ptr [p3+0xC0000000], eax
-    
+    mov dword ptr [p3],    0x83
+    mov dword ptr [p3+8],  0x40000083
+    mov dword ptr [p3+16], 0x80000083
+    mov dword ptr [p3+24], 0xC0000083
     ret
+
 
 
 enable_paging:
@@ -156,10 +148,6 @@ enable_paging:
 
     ret
 
-
-
-
-
 // Prints `ERR: ` and the given error code to screen and hangs.
 // parameter: error code (in ascii) in al
 error:
@@ -170,6 +158,29 @@ error:
     hlt
 
 
+.section .inittext, "awx"
+.intel_syntax noprefix
+.code64
+
+_init64:
+    .extern _start
+
+    // print `OKAY` to screen
+    mov rax, 0x2f592f412f4b2f4f
+    mov qword ptr [0xb8000], rax
+    hlt
 
 
+
+gdt64:
+    .quad 0
+gdt64.code = . - gdt64
+    // Executable, is code, present and is 64bit code segment
+    .quad (1<<43) | (1<<44)|(1<<47)|(1<<53)
+gdt64.pointer:
+    .word . - gdt64 -1
+    .quad gdt64
 // Credits to elyalyssamathys
+
+
+
