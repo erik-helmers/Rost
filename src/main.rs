@@ -11,15 +11,17 @@
 #[allow(unused_imports)]
 use rost_nbs;
 
-pub static MAGIC: u32 = 0xDEADBEEF;
 
 
 #[no_mangle]
 pub extern fn _start() {
+    let msg = b"Rost is alive.";
+    let color = 0x0f;
     unsafe {
-        let ptr= 0xb8000 as *mut u32;
-        for i in 0..100 {
-            *(ptr.offset(i)) = MAGIC;
+        let ptr = 0xb8000;
+        for (i,chr) in msg.into_iter().enumerate() {
+            *((ptr +(i*2)) as usize as *mut u8 ) = *chr;
+            *((ptr +(i*2+1)) as usize as *mut u8 ) = color;
         }
     }
     loop{}    

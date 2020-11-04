@@ -45,7 +45,7 @@ $(iso): $(kernel) $(grub_cfg)
 
 $(kernel): kernel 
 		@mkdir -p build
-		@cp $(rost) $(kernel)
+		@cp $(rost_stripped) $(kernel)
 
 kernel:
 		@cargo build 

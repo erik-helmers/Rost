@@ -35,6 +35,7 @@ SECTIONS {
 		p3 = .;
 		. += 0x1000; 
 		page_table_end = .;
+		// Very little stack, be carefull
 		boot_stack_bottom = .;
 		. += 64;
 		boot_stack_top = .;
@@ -47,9 +48,9 @@ SECTIONS {
 	 */
 
 	init_end = ALIGN(0x1000);
-	LOAD_OFFSET = KERNEL_BASE - init_end;
+	LOAD_OFFSET = KERNEL_BASE;
 
-	. = KERNEL_BASE;
+	. += KERNEL_BASE;
 	phys_kern_start = . - LOAD_OFFSET;
 
 	.text ALIGN(0x1000) : AT(ADDR(.text) - LOAD_OFFSET) {
@@ -67,7 +68,6 @@ SECTIONS {
 	/* The follow snippet forces the LMA to be equal to the VMA.. Why ?
 	 `.data ALIGN(0x1000): AT(ADDR(.data) - LOAD_OFFSET)`
 	  A rapid fix is to page align the end of .rodata */
-	
 	 
 	.data : AT(ADDR(.data) - LOAD_OFFSET ){
 		*(.padata)

@@ -164,13 +164,34 @@ error:
 
 _init64:
     .extern _start
-
     // print `OKAY` to screen
     mov rax, 0x2f592f412f4b2f4f
     mov qword ptr [0xb8000], rax
-    hlt
+    call init_hh_pages
+    // We now have higher half paging, which means
+    // we can use the stack as we want
+    mov rsp, offset kstack_top
+    .busy: jmp .busy
+    call _start
+    hlt 
 
+// Init higher half pages 
+// Identity maps phys 2GiB to virt -2GiB
+//
+// TODO: this will break if we change the mapping
+// Because 0xffff_ffff_8000_000 is hardcoded in a 
+// a non trivial way
+init_hh_pages:
+    mov eax, offset p3
+    or eax, 0b11
+    mov dword ptr [p4+511*8], eax
 
+    mov dword ptr [p3+510*8], 0x00000083
+    mov dword ptr [p3+511*8], 0x40000083
+    // we dont forget to flush our changes
+    mov rax, cr3
+    mov cr3, rax
+    ret 
 
 gdt64:
     .quad 0
@@ -182,5 +203,7 @@ gdt64.pointer:
     .quad gdt64
 // Credits to elyalyssamathys
 
+.section .bss
 
-
+.lcomm kstack_bottom, 0x1000
+kstack_top: 
