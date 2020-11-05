@@ -27,7 +27,10 @@ where
     }
 }
 
-pub fn test_runner(_tests: &[&dyn Testable]) {
+pub fn test_runner(tests: &[&dyn Testable]) {
+    for test in tests {
+        test.run();
+    }
 }
 
 
