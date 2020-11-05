@@ -7,9 +7,10 @@
 
 #![feature(asm)]
 #![feature(global_asm)]
-
+#![feature(const_fn)]
 #![allow(unused_macros)]
 
+extern crate rlibc;
 
 pub mod arch;
 pub mod utils; 

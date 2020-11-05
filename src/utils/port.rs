@@ -16,7 +16,7 @@ use crate::arch::instructions as instrux;
 
 impl<T:PortSize> Port<T> {
     // Create a port with the specified number
-    pub fn new(port: u16) -> Port<T> {
+    pub const fn new(port: u16) -> Port<T> {
         Port{num:port, _psize: PhantomData}
     }
 

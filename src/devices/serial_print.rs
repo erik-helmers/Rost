@@ -1,5 +1,28 @@
 use crate::utils::port::*;
 use crate::arch::instructions::{inb, outb};
+use spin::Mutex;
+
+pub static SERIAL_PRINTER : Mutex<SerialPrinter> = Mutex::new(SerialPrinter::new());
+
+
+
+#[macro_export]
+macro_rules! serial_println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::serial_print!("{}\n", format_args!($($arg)*)));
+}
+
+#[macro_export]
+macro_rules! serial_print {
+    ($($arg:tt)*) => ($crate::devices::serial_print::_print(format_args!($($arg)*)));
+}
+
+
+#[doc(hidden)]
+pub fn _print(args: core::fmt::Arguments) {
+    use core::fmt::Write;
+    SERIAL_PRINTER.lock().write_fmt(args).unwrap();
+}
 
 #[allow(dead_code)]
 pub struct SerialPrinter {
@@ -47,7 +70,7 @@ impl core::fmt::Write for SerialPrinter {
 }
 
 impl SerialPrinter {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         let base_port = SerialPrinter::search_com_port();
         Self {
             base_port,
@@ -106,7 +129,7 @@ impl SerialPrinter {
     /// Search for a valid COM port
     ///
     /// https://wiki.osdev.org/Serial_Ports#Port_Addresses 
-    pub fn search_com_port() -> u16 {
+    pub const fn search_com_port() -> u16 {
         return 0x3F8;
     }
 
@@ -147,3 +170,18 @@ impl SerialPrinter {
 }
 
 
+
+
+#[test_case]
+pub fn serial_char_no_crash(){
+    let sp = SerialPrinter::new();
+    unsafe { sp.init();}
+    sp.write_char('0');
+}
+
+#[test_case]
+pub fn serial_str_no_crash(){
+    let sp = SerialPrinter::new();
+    unsafe { sp.init();}
+    sp.write(&"123456789");
+}
