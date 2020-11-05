@@ -11,8 +11,9 @@
 // which will be used
 #[allow(unused_imports)]
 use rost_nbs;
+rost_nbs::import_commons!();
+
 use rost_nbs::devices::serial_print::SerialPrinter;
-use rost_nbs::{serial_print, serial_println};
 
 #[no_mangle]
 pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
@@ -27,8 +28,10 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
         *((ptr +(i*2)) as usize as *mut u8 ) = *chr;
         *((ptr +(i*2+1)) as usize as *mut u8 ) = color;
     }
-    let sp = SerialPrinter::new();    
-    serial_print!("Here are some numbers : {:#x}", (&_boot_info) as *const *const u8 as usize);
+    serial_print!("Here are some numbers : {:#x}\n", (&_boot_info) as *const *const u8 as usize);
+    serial_print!("and {:#x}",  0xDEADBEEFu64);
+    
+    
     loop{}
 }
 
