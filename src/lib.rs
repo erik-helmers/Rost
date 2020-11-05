@@ -8,7 +8,8 @@
 #![feature(asm)]
 #![feature(global_asm)]
 
-extern crate rlibc;
+#![allow(unused_macros)]
+
 
 pub mod arch;
 pub mod utils; 
@@ -26,9 +27,17 @@ where
     }
 }
 
-
 pub fn test_runner(_tests: &[&dyn Testable]) {
 }
+
+
+#[cfg(test)]
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    test_main();
+    loop{}
+}
+
 
 #[cfg(test)]
 #[panic_handler]
@@ -36,9 +45,9 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop{}
 }
 
+
+
 #[test_case]
-fn test_lib(){
-    assert!(0==0);
+fn test1() {
+    assert_eq!(0, 0);
 }
-
-

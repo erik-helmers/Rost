@@ -2,17 +2,23 @@ arch ?= x86_64
 
 target ?= $(arch)-rost
 target_dir := target/$(target)/debug
-rost := $(target_dir)/rost_nbs
-rost_stripped := $(target_dir)/rost_nbs_sd
 
-kernel := build/kernel-$(arch).bin
-iso := build/os-$(arch).iso
+kern_default ?= $(target_dir)/rost_nbs
+
+
+# This is the executable 
+kern_elf ?= $(kern_default)
+kern_dir := $(dir $(kern_elf))
+# kernel Stripped Debug
+kern_elf_stripped := $(kern_elf)_sd
+
+iso ?= $(kern_elf).iso
 
 grub_cfg := src/arch/$(arch)/boot/grub.cfg
 
 .PHONY: all clean run iso kernel debug r d 
 
-all: $(kernel) 
+all: $(kern_default) 
 
 clean:
 	@# When changing the link script we want
@@ -32,21 +38,19 @@ d: debug
 debug: $(iso)
 		@qemu-system-x86_64 -S -gdb tcp::3333 -cdrom $(iso)
 
+
 iso: $(iso)
+	
+
+$(iso): $(kern_elf)
+	@echo Building ISO for: $(notdir $(kern_elf)) to $(iso)
+	@mkdir -p $(kern_dir)/isofiles/boot/grub
+	@cp $(kern_elf) $(kern_dir)/isofiles/boot/kernel.bin
+	@cp $(grub_cfg) $(kern_dir)/isofiles/boot/grub
+	@grub-mkrescue -o $(iso) $(kern_dir)/isofiles 2> /dev/null
+	@rm -r $(kern_dir)/isofiles
 
 
-
-$(iso): $(kernel) $(grub_cfg)
-		@mkdir -p build/isofiles/boot/grub
-		@cp $(kernel) build/isofiles/boot/kernel.bin
-		@cp $(grub_cfg) build/isofiles/boot/grub
-		@grub-mkrescue -o $(iso) build/isofiles 2> /dev/null
-		@rm -r build/isofiles
-
-$(kernel): kernel 
-		@mkdir -p build
-		@cp $(rost_stripped) $(kernel)
-
-kernel:
+$(kern_default):
 		@cargo build 
-		@objcopy --strip-debug $(rost) $(rost_stripped) 
+		@objcopy --strip-debug $(kern_elf) $(kern_elf_stripped) 
