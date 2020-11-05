@@ -12,10 +12,9 @@
 use rost_nbs;
 
 
-
 #[no_mangle]
-pub extern fn _start() {
-    let msg = b"Rost is alive.";
+pub unsafe extern "sysv64" fn _start(boot_info: *const u8) {
+    let msg = b"Rost is alive."; 
     let color = 0x0f;
     unsafe {
         let ptr = 0xb8000;
@@ -24,7 +23,7 @@ pub extern fn _start() {
             *((ptr +(i*2+1)) as usize as *mut u8 ) = color;
         }
     }
-    loop{}    
+    loop{}
 }
 
 

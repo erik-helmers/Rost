@@ -38,7 +38,10 @@ SECTIONS {
 		// Very little stack, be carefull
 		boot_stack_bottom = .;
 		. += 64;
-		boot_stack_top = .;
+		boot_stack_top = .;		
+		boot_info_addr = .;
+		. += 4;
+		
 
 	}
 	

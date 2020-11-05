@@ -12,9 +12,9 @@ _init:
     // works whereas mov gives invalid result 
     //  -> Its because the correct syntax is `mov esp, offset boot_stack_top`
     lea esp, boot_stack_top
-
-
+    mov dword ptr [boot_info_addr], ebx  
     call check_multiboot
+
     call check_cpuid
     call check_long_mode
 
@@ -164,6 +164,15 @@ error:
 
 _init64:
     .extern _start
+
+    // We clear data semgent registers 
+    mov ax, 0
+    mov ss, ax
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
     // print `OKAY` to screen
     mov rax, 0x2f592f412f4b2f4f
     mov qword ptr [0xb8000], rax
@@ -171,7 +180,8 @@ _init64:
     // We now have higher half paging, which means
     // we can use the stack as we want
     mov rsp, offset kstack_top
-    .busy: jmp .busy
+    
+    mov  edi, [boot_info_addr]
     call _start
     hlt 
 
@@ -204,6 +214,6 @@ gdt64.pointer:
 // Credits to elyalyssamathys
 
 .section .bss
-
+// Page aligned section
 .lcomm kstack_bottom, 0x1000
 kstack_top: 
