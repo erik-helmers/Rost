@@ -11,7 +11,7 @@
 extern crate rlibc;
 
 pub mod arch;
-
+pub mod utils; 
 
 pub trait Testable {
     fn run(&self) -> ();
