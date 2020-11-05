@@ -13,6 +13,7 @@
 
 pub mod arch;
 pub mod utils; 
+pub mod devices;
 
 pub trait Testable {
     fn run(&self) -> ();

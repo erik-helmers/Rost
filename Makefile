@@ -18,7 +18,7 @@ grub_cfg := src/arch/$(arch)/boot/grub.cfg
 
 .PHONY: all clean run iso kernel debug r d 
 
-all: $(kern_default) 
+all: kernel 
 
 clean:
 	@# When changing the link script we want
@@ -33,7 +33,7 @@ clean:
 
 r: run
 run: $(iso) 
-		@qemu-system-x86_64 -cdrom $(iso)
+		@qemu-system-x86_64 -cdrom $(iso) -serial stdio
 d: debug
 debug: $(iso)
 		@qemu-system-x86_64 -S -gdb tcp::3333 -cdrom $(iso)
@@ -50,7 +50,8 @@ $(iso): $(kern_elf)
 	@grub-mkrescue -o $(iso) $(kern_dir)/isofiles 2> /dev/null
 	@rm -r $(kern_dir)/isofiles
 
+$(kern_default): kernel
 
-$(kern_default):
+kernel:
 		@cargo build 
 		@objcopy --strip-debug $(kern_elf) $(kern_elf_stripped) 

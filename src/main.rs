@@ -11,6 +11,7 @@
 // which will be used
 #[allow(unused_imports)]
 use rost_nbs;
+use rost_nbs::devices::serial_print::SerialPrinter;
 
 #[no_mangle]
 pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
@@ -25,6 +26,9 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
         *((ptr +(i*2)) as usize as *mut u8 ) = *chr;
         *((ptr +(i*2+1)) as usize as *mut u8 ) = color;
     }
+    let sp = SerialPrinter::new();    
+    sp.init();
+    sp.write(&"Rost is alive and in serial.\n");
     loop{}
 }
 
