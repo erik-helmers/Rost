@@ -79,7 +79,10 @@ SECTIONS {
 	}
 	
 	/* Zero-initialised data */
+	/* We need to make sure that this is aligned
+	   because the stack is in this section */
 	.bss : AT(ADDR(.bss) - KERNEL_BASE) {
+		. = ALIGN(0x1000);
 		*(.bss .bss.*)
 	}
 
