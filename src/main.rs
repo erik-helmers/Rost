@@ -2,7 +2,7 @@
 #![no_main]
 
 #![feature(custom_test_frameworks)]
-#![test_runner(rost_nbs::test_runner)]
+#![test_runner(rost_nbs::test::runner)]
 #![reexport_test_harness_main = "test_main"]
 
 #![feature(asm)]
@@ -11,9 +11,9 @@
 // which will be used
 #[allow(unused_imports)]
 use rost_nbs;
+
 rost_nbs::import_commons!();
 
-use rost_nbs::devices::serial_print::SerialPrinter;
 
 #[no_mangle]
 #[cfg(not(test))]
