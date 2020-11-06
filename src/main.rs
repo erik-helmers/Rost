@@ -16,6 +16,7 @@ rost_nbs::import_commons!();
 use rost_nbs::devices::serial_print::SerialPrinter;
 
 #[no_mangle]
+#[cfg(not(test))]
 pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
     // We have many things to redo now that we're in higher half 
     // - setup a better GDT 
@@ -33,6 +34,12 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
     
     
     loop{}
+}
+
+#[no_mangle]
+#[cfg(test)]
+pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) -> !{
+    rost_nbs::devices::qemu_debug::exit(0);
 }
 
 #[cfg(test)]
