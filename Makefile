@@ -16,6 +16,14 @@ iso ?= $(kern_elf).iso
 
 grub_cfg := src/arch/$(arch)/boot/grub.cfg
 
+# Qemu arguments
+QEMU ?= qemu-system-x86_64
+QEMU_DEFAULT_ARGS += -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=1
+QEMU_DEBUG_ARGS   += -S -gdb tcp::3333 
+QEMU_RUN_ARGS     += 
+QEMU_TESTING_ARGS += -display none
+
+
 .PHONY: all clean run iso kernel debug r d 
 
 all: kernel 
@@ -33,11 +41,16 @@ clean:
 
 r: run
 run: $(iso) 
-		@qemu-system-x86_64 -cdrom $(iso) -serial stdio
+		@$(QEMU) $(QEMU_DEFAULT_ARGS) $(QEMU_RUN_ARGS) -cdrom $(iso); let code="($$?-1)/2"; exit $$code
+
+
 d: debug
 debug: $(iso)
-		@qemu-system-x86_64 -S -gdb tcp::3333 -cdrom $(iso) -serial stdio
+		@$(QEMU) $(QEMU_DEFAULT_ARGS) $(QEMU_DEBUG_ARGS)  -cdrom $(iso)
 
+t: test
+test:
+	QEMU_DEFAULT_ARGS="$(QEMU_TESTING_ARGS)" cargo test 
 
 iso: $(iso)
 	
