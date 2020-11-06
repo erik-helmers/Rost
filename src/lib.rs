@@ -25,16 +25,26 @@ where
     T: Fn(),
 {
     fn run(&self) {
+        serial_print!("{}...\t", core::any::type_name::<T>());
         self();
+        serial_println!("[ok]");
     }
 }
 
 pub fn test_runner(tests: &[&dyn Testable]) {
+    serial_println!("Running {} tests", tests.len());
     for test in tests {
         test.run();
     }
 }
 
+use core::panic::PanicInfo;
+
+pub fn test_panic_handler(info: &PanicInfo) -> ! {
+    serial_println!("[failed]\n");
+    serial_println!("Error: {}\n", info);
+    loop{};
+}
 
 #[cfg(test)]
 #[no_mangle]
@@ -47,7 +57,7 @@ pub extern "C" fn _start() -> ! {
 #[cfg(test)]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop{}
+    test_panic_handler(_info);
 }
 
 

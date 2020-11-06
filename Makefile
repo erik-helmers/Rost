@@ -36,13 +36,13 @@ run: $(iso)
 		@qemu-system-x86_64 -cdrom $(iso) -serial stdio
 d: debug
 debug: $(iso)
-		@qemu-system-x86_64 -S -gdb tcp::3333 -cdrom $(iso)
+		@qemu-system-x86_64 -S -gdb tcp::3333 -cdrom $(iso) -serial stdio
 
 
 iso: $(iso)
 	
 
-$(iso): $(kern_elf)
+$(iso):  $(kern_elf) $(grub_cfg)
 	@echo Building ISO for: $(notdir $(kern_elf)) to $(iso)
 	@mkdir -p $(kern_dir)/isofiles/boot/grub
 	@cp $(kern_elf) $(kern_dir)/isofiles/boot/kernel.bin
