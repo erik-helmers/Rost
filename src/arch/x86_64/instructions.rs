@@ -1,12 +1,10 @@
+#[inline(always)]
+/// Implement IDT 
+pub unsafe fn lidt(ptr: u64){
+    asm!("lidt [rax]", in("rax") ptr);
+}
 
 
-// Here we implement i/o instruction, namely in(x) / out(x) commands and sti, cli
-// With the 3 possible sizes, byte, word, double word
-// See:
-// https://doc.rust-lang.org/beta/unstable-book/library-features/llvm-asm.html
-// https://doc.rust-lang.org/beta/unstable-book/library-features/asm.html
-// https://hjlebbink.github.io/x86doc/html/IN.html
-// https://hjlebbink.github.io/x86doc/html/OUT.html
 
 pub unsafe fn sti(){
     asm!("sti",  options(nostack, nomem));
@@ -16,7 +14,16 @@ pub unsafe fn cli(){
     asm!("cli", options(nostack, nomem));
 }
 
-    
+
+
+
+// Here we implement i/o instruction, namely in(x) / out(x) commands and sti, cli
+// With the 3 possible sizes, byte, word, double word
+// See:
+// https://doc.rust-lang.org/beta/unstable-book/library-features/llvm-asm.html
+// https://doc.rust-lang.org/beta/unstable-book/library-features/asm.html
+// https://hjlebbink.github.io/x86doc/html/IN.html
+// https://hjlebbink.github.io/x86doc/html/OUT.html
 
 
 
