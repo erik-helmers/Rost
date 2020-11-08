@@ -9,6 +9,7 @@
 #![feature(global_asm)]
 #![feature(const_fn)]
 #![feature(abi_x86_interrupt)]
+
 #![allow(unused_imports)]
 #![allow(unused_macros)]
 

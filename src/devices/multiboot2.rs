@@ -157,6 +157,18 @@ info_tag!(
     BootCommandLine{
 //    string: [u8]
 });
+
+impl BootCommandLine {
+    pub fn string(&self) -> &'static str {
+        let ptr = self as *const _ as  u64;
+        let content =( ptr + 8) as *const u8;
+        unsafe {
+            let parts = core::slice::from_raw_parts(content, (self.size - 8) as _);
+            core::str::from_utf8_unchecked(parts)
+        }
+    }
+}
+
 info_tag!( 
     type = 3,
     Modules{
@@ -229,8 +241,21 @@ pub enum MemMapEntryType {
 info_tag!( 
     type = 2,
     BootLoaderName{
+        //string 
+    }
+);
+impl BootLoaderName {
+    pub fn string(&self) -> &'static str {
+        let ptr = self as *const _ as  u64;
+        let content =( ptr + 8) as *const u8;
+        unsafe {
+            let parts = core::slice::from_raw_parts(content, (self.size - 8) as _);
+            core::str::from_utf8_unchecked(parts)
+        }
+    }
+}
 
-});
+
 info_tag!( 
     type =  10,
     APMTable {
@@ -290,9 +315,6 @@ info_tag!(
 
 
 
-
-
-
 impl core::fmt::Debug for MemMapEntry {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
@@ -303,4 +325,3 @@ impl core::fmt::Debug for MemMapEntry {
                     .field("type_id", &format_args!("{:?}", self.type_id()))
                     .finish()
 } } }}
-
