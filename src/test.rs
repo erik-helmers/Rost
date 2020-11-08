@@ -37,7 +37,7 @@ pub fn runner(tests: &[&dyn Testable]) {
 pub fn panic_handler(info: &core::panic::PanicInfo)-> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
-    qemu_debug::exit(qemu_debug::Status::Success);
+    qemu_debug::exit(qemu_debug::Status::Failed);
 }
 
 #[cfg(test)]
