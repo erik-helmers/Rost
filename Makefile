@@ -21,10 +21,10 @@ QEMU ?= qemu-system-x86_64
 QEMU_DEFAULT_ARGS += -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=1
 QEMU_DEBUG_ARGS   += -S -gdb tcp::3333 
 QEMU_RUN_ARGS     += 
-QEMU_TESTING_ARGS += -display none
+QEMU_TESTING_ARGS += -display none -no-reboot
 
 
-.PHONY: all clean run iso kernel debug r d 
+.PHONY: all clean run run-test iso kernel debug r d 
 
 all: kernel 
 
@@ -41,7 +41,11 @@ clean:
 
 r: run
 run: $(iso) 
-		@$(QEMU) $(QEMU_DEFAULT_ARGS) $(QEMU_RUN_ARGS) -cdrom $(iso); let code="($$?-1)/2"; exit $$code
+	@$(QEMU) $(QEMU_DEFAULT_ARGS) $(QEMU_RUN_ARGS) -cdrom $(iso); let code="($$?-1)/2"; exit $$code
+
+# Same as run, but make sure the exit code is 50 (success)
+run-test: $(iso) 
+	$(QEMU) $(QEMU_DEFAULT_ARGS) $(QEMU_RUN_ARGS) -cdrom $(iso); (($$? == 101)); exit $$?
 
 
 d: debug

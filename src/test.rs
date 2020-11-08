@@ -4,6 +4,9 @@
 
 crate::import_commons!();
 
+use crate::devices::qemu_debug;
+
+
 pub trait Testable {
     fn run(&self) -> ();
 }
@@ -25,21 +28,23 @@ pub fn runner(tests: &[&dyn Testable]) {
         test.run();
     }
     // We ran all test, we can now exit
-    crate::devices::qemu_debug::exit(0);
+    qemu_debug::exit(qemu_debug::Status::Success);
 }
 
 
 
 
-
+pub fn panic_handler(info: &core::panic::PanicInfo)-> ! {
+    serial_println!("[failed]\n");
+    serial_println!("Error: {}\n", info);
+    qemu_debug::exit(qemu_debug::Status::Success);
+}
 
 #[cfg(test)]
 #[panic_handler]
 /// This is the test specific panic handler
 pub fn panic(info: &core::panic::PanicInfo) -> ! {
-    serial_println!("[failed]\n");
-    serial_println!("Error: {}\n", info);
-    crate::devices::qemu_debug::exit(1);
+    panic_handler(info);
 }
 
 

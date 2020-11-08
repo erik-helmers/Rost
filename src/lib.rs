@@ -19,6 +19,10 @@ pub mod utils;
 pub mod devices;
 pub mod test; 
 
+pub fn panic_handler(info: &core::panic::PanicInfo) ->! {
+    serial_print!("{}", info);
+    loop{}
+}
 
 #[no_mangle]
 #[cfg(test)]

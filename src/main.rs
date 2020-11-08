@@ -27,8 +27,11 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
     serial_println!("Trying to set IDT...");
 
     arch::interrupts::init_idt();
+    // trigger a page fault
+    unsafe {
+        *(0x88deadbeef as *mut u64) = 42;
+    };
 
-    asm!("int 3");
     //devices::multiboot2::parse_boot_info(_boot_info);
     
 
@@ -41,7 +44,8 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
 #[no_mangle]
 #[cfg(test)]
 pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) -> !{
-    rost_nbs::devices::qemu_debug::exit(0);
+    use devices::qemu_debug;
+    qemu_debug::exit(qemu_debug::Status::Success);
 }
 
 #[cfg(test)]
@@ -53,6 +57,6 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 
 #[cfg(not(test))]
 #[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop{}
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    panic_handler(info);
 }
