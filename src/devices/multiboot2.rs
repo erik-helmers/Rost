@@ -5,11 +5,20 @@
 //! We'll, to this I would respond the following : 
 //! 
 //! TODO: where should this be ?
+//! FIXME: the MultibootInfo struct should probably 
+//! use the Pin mechanism, the ELFSymbols has `at()` fns
+//! whereas the MemoryMap is indexable.. 
+//! FIXME: overall better design could be achieved here.
 //! 
 //! This is purely from: 
 //! https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html#Boot-information-format
 //! I have not seen any other Multiboot2 parser, meaning that this may be 
 //! some real, real bad code 
+//! 
+//! IMPORTANT NOTE: 
+//! I discovered that GRUB2 DOES NOT respect the Multiboot2 spec
+//! the ELFSymbols tag use 32 bit vals instead of 16bit.
+//! for more info see the ELFSymbols struct.
 
 
 crate::import_commons!();
@@ -30,7 +39,12 @@ pub struct MultibootInfo( *const() );
 
 impl MultibootInfo {
     pub fn new(mbi: *const()) -> Self{ Self(mbi) }
-    
+
+    /// Returns the `total_size` field per multiboot spec
+    pub fn total_size(&self) -> u32{
+        let ptr = self as *const _  as *const u32;
+        return unsafe {*ptr};
+    }
     pub fn search_tag_from_type(&self, id: u32) -> Option<*const ()>{
         for ptr in self {
             let tag = unsafe {ptr.as_ref().unwrap()};
@@ -123,8 +137,8 @@ macro_rules! info_tag {
         #[repr(C)]
         pub struct $name { 
             type_id: u32,
-            size: u32,
-            $($element: $ty),*
+            pub size: u32,
+            $(pub $element: $ty),*
         }
 
         impl MBITag for $name {
@@ -178,12 +192,34 @@ info_tag!(
 });
 info_tag!( 
     type = 9,
+    /// Be careful, this is not to spec as stated in 
+    /// the (ref specification)[https://www.gnu.org/software/grub/manual/multiboot2/multiboot.html]
+    /// the entsize and shndx are 32bits in size but the 
     ELFSymbols{
         num: u16,
-        entsize: u16,
-        shndx: u16,
+        entsize: u32,
+        shndx: u32,
         reserved: u16
+        
+
 });
+use super::elf::SectionHeader64;
+use super::elf::SectionHeader32;
+
+impl ELFSymbols {
+    pub fn at(&self, i: usize) -> Option<&SectionHeader64>{
+        if i > self.num as _ {return None}
+        let content = self as *const _  as usize + 20;
+        let section = (content +  i*0x40) as *const u8;
+        Some(unsafe {section.cast::<SectionHeader64>().as_ref().unwrap()})
+    }
+    pub fn at32(&self, i: usize) -> Option<&SectionHeader32>{
+        if i > self.num as _ {return None}
+        let ptr = self as *const _  as usize;
+        let content = (ptr + i*core::mem::size_of::<SectionHeader32>()) as *const u8;
+        Some(unsafe {content.cast::<SectionHeader32>().as_ref().unwrap()})
+    }
+}
 
 info_tag!( 
     type = 6,
