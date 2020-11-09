@@ -13,6 +13,8 @@
 #![allow(unused_unsafe)]
 
 
+use core::cmp::min;
+
 use rost_nbs::*;
 import_commons!();
 
@@ -21,21 +23,36 @@ use devices::multiboot2::*;
 #[no_mangle]
 pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {
 
+    // Dumping all tags generic
+    
+
     let mbi = MultibootInfo::new(_boot_info);
 
-    for (i,tag) in (&mbi).into_iter().enumerate() {
-        let tag = tag.as_ref().unwrap();
-        serial_print!("Tag #{}: ", i);
+    dump_mbi(&mbi);
+    serial_println!("");
 
-        dump_tag(&mbi, tag);
-    }
-    let mmap = mbi.find::<MemoryMap>().unwrap();
-    serial_println!("{:?}", mmap);
-    for i in 0..mmap.nb_entries(){
-        serial_println!("Entry #{}: {:?}", i, mmap[i]);
-    }
+    let mmap = mbi.find::<MemoryMap>();
+    if mmap.is_some() {dump_mmap(mmap.unwrap());}
+    else {serial_println!("Memory map not found.");}
+    serial_println!("");
+
+    let elf = mbi.find::<ELFSymbols>();
+    if elf.is_some() {dump_elf(elf.unwrap());}
+    else {serial_println!("ELF symbols not found.");}
+    
 
     devices::qemu_debug::exit(devices::qemu_debug::Status::Success);
+}
+
+
+pub unsafe fn dump_mbi(mbi: &MultibootInfo){
+    
+    serial_println!("MBI struct: total_size: {0} = {0:#x}", mbi.total_size());
+
+    for (i, tag) in mbi.into_iter().enumerate() {
+        serial_print!("Tag #{}: ", i);
+        dump_tag(mbi, tag.as_ref().unwrap());
+    }
 }
 
 unsafe fn dump_tag(mbi: &MultibootInfo, tag: &TagHeader) -> Option<()>{
@@ -70,7 +87,26 @@ unsafe fn dump_tag(mbi: &MultibootInfo, tag: &TagHeader) -> Option<()>{
 
 }
     
+
+pub fn dump_mmap(mmap: &MemoryMap){
+    serial_println!("Memory map: {} entries", mmap.nb_entries());
+    for i in 0..mmap.nb_entries(){
+        serial_println!("Entry #{}: {:?}", i, mmap[i]);
+    }
+}
+
+pub unsafe fn dump_elf(elf: &ELFSymbols){
+    serial_println!("ELF symbols : {} sections", elf.num);
+
+    let num = min(10, elf.num);
+
+    for i in 0..num {
+        let sh = elf.at(i as _ ).unwrap();
+        serial_println!("Section #{}: {:#?}", i, sh);    
+    }
     
+    if num < elf.num { serial_println!("... Omitted {} sections.", elf.num - num); }
+}
     
 
 #[panic_handler]
