@@ -215,5 +215,5 @@ gdt64.pointer:
 
 .section .bss
 // Page aligned section
-.lcomm kstack_bottom, 0x1000
+.lcomm kstack_bottom, 0x4000
 kstack_top: 
