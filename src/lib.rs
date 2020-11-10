@@ -13,8 +13,6 @@
 #![allow(unused_imports)]
 #![allow(unused_macros)]
 
-extern crate rlibc;
-
 pub mod arch;
 pub mod utils; 
 pub mod devices;
