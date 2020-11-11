@@ -1,10 +1,5 @@
 //! Parsing the Multiboot2 boot information
 
-//! Yes, I know this is not really a device.
-//! Some may even say, it's not a device AT ALL.
-//! We'll, to this I would respond the following : 
-//! 
-//! TODO: where should this be ?
 //! FIXME: the MultibootInfo struct should probably 
 //! use the Pin mechanism, the ELFSymbols has `at()` fns
 //! whereas the MemoryMap is indexable.. 

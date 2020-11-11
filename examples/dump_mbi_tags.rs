@@ -18,7 +18,7 @@ use core::cmp::min;
 use rost_nbs::*;
 import_commons!();
 
-use devices::multiboot2::*;
+use common::multiboot2::*;
 
 #[no_mangle]
 pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {

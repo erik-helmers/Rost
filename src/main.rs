@@ -17,7 +17,7 @@ use rost_nbs::*;
 
 rost_nbs::import_commons!();
 
-use devices::multiboot2::{MultibootInfo, MemoryMap, TagHeader};
+use common::multiboot2::{MultibootInfo, MemoryMap, TagHeader};
 
 #[no_mangle]
 #[cfg(not(test))]

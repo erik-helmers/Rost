@@ -1,4 +1,3 @@
-//! Same as `multiboot2.rs` this has nothing to do here.
 #[repr(C, packed)]
 #[derive(Debug, Copy, Clone)]
 pub struct SectionHeader64 {

@@ -17,6 +17,7 @@ pub mod arch;
 pub mod utils; 
 pub mod devices;
 pub mod test; 
+pub mod common;
 
 pub fn panic_handler(info: &core::panic::PanicInfo) ->! {
     serial_print!("{}", info);
