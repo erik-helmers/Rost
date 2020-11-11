@@ -21,7 +21,7 @@ import_commons!();
 use common::multiboot2::*;
 
 #[no_mangle]
-pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {
+pub unsafe extern "sysv64" fn _start(_boot_info: *const MultibootInfo) {
 
     // Dumping all tags generic
     
@@ -47,15 +47,15 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {
 
 pub unsafe fn dump_mbi(mbi: &MultibootInfo){
     
-    serial_println!("MBI struct: total_size: {0} = {0:#x}", mbi.total_size());
+    serial_println!("MBI struct: total_size: {0} = {0:#x}", mbi.size);
 
     for (i, tag) in mbi.into_iter().enumerate() {
         serial_print!("Tag #{}: ", i);
-        dump_tag(mbi, tag.as_ref().unwrap());
+        dump_tag(tag);
     }
 }
 
-unsafe fn dump_tag(mbi: &MultibootInfo, tag: &TagHeader) -> Option<()>{
+unsafe fn dump_tag(tag: &TagHeader) -> Option<()>{
     let ptr = tag as *const TagHeader;
     let content : &dyn core::fmt::Debug = match tag.type_id {
         4 => ptr.cast::<BasicMemoryInformation>().as_ref()?,
@@ -101,8 +101,7 @@ pub unsafe fn dump_elf(elf: &ELFSymbols){
     let num = min(10, elf.num);
 
     for i in 0..num {
-        let sh = elf.at(i as _ ).unwrap();
-        serial_println!("Section #{}: {:#?}", i, sh);    
+        serial_println!("Section #{}: {:#?}", i, elf[i]);    
     }
     
     if num < elf.num { serial_println!("... Omitted {} sections.", elf.num - num); }

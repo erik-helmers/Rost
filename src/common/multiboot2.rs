@@ -17,7 +17,8 @@
 
 
 crate::import_commons!();
-use core::ops::Index;
+
+use core::{ops::Index, mem::size_of};
 
 use crate::utils::maths::align_upper;
 #[repr(C)]
@@ -30,88 +31,89 @@ pub struct TagHeader {
 }
 
 /// Represents a multiboot information 
-pub struct MultibootInfo( *const() );
+pub struct MultibootInfo{
+    pub size: u32,
+    reserved: u32,
+}
 
 impl MultibootInfo {
-    pub fn new(mbi: *const()) -> Self{ Self(mbi) }
+    pub fn new(mbi_ptr: *const MultibootInfo) -> &'static Self{ 
+        let mbi = unsafe {mbi_ptr.as_ref().unwrap()};
+        assert_eq!(mbi.reserved, 0, 
+            "Reserved field of the mbi should be zero, memory may have been overwritten");
+        mbi
+     }
 
-    /// Returns the `total_size` field per multiboot spec
-    pub fn total_size(&self) -> u32{
-        let ptr = self as *const _  as *const u32;
-        return unsafe {*ptr};
-    }
-    pub fn search_tag_from_type(&self, id: u32) -> Option<*const ()>{
-        for ptr in self {
-            let tag = unsafe {ptr.as_ref().unwrap()};
+    pub fn search_tag_from_type(&self, id: u32) -> Option<&'static TagHeader>{
+        for tag in self {
             if tag.type_id == id {
-                return Some(ptr as *const() )
+                return Some(tag)
             }
         }
         None
     }
 
-    pub fn find<T>(&self) -> Option<&T>  where T: MBITag{
-        T::find(self)
+    pub fn content(&self) -> *const TagHeader{
+        let ptr = self as *const _ as usize;
+        (ptr + core::mem::size_of::<Self>()) as *const TagHeader
     }
 
-    
+    pub fn find<T>(&self) -> Option<&'static T>  where T: MBITag{
+        T::find(self)
+    }
 }
 
 
 impl IntoIterator for &MultibootInfo {
-    type Item = *const TagHeader;
+    type Item = &'static TagHeader;
 
     type IntoIter = MBIIterator;
 
     fn into_iter(self) -> Self::IntoIter {
-        let total_size: u32= {
-            let hdr = unsafe {self.0.cast::<Header>().as_ref().unwrap()};
-            assert_eq!(hdr.1, 0, "The bootinfo ptr may be invalid, or memory has been overwritten");
-            hdr.0
-        };
         return MBIIterator {
-            mbi:self.0,
-            // the header is 64bit 
-            cur_pos: 8,
-            size:total_size
+            next_tag:self.content(),
+            end: (self.content() as usize + self.size as usize) as _
         }
     }
 }
 pub struct MBIIterator {
-    mbi: *const(),
-    size: u32,
-    cur_pos: u32
+    next_tag: *const TagHeader,
+    end: *const TagHeader,
 }
 
 impl Iterator for MBIIterator {
-    type Item = *const TagHeader;
+    type Item = &'static TagHeader;
 
     /// Iters over the MBI tags
     /// doesn't include the end tag 
     fn next(&mut self) -> Option<Self::Item> {
  
-        if self.cur_pos >= self.size { return None }
+        if self.end <= self.next_tag { return None }
         
-        let ptr = self.mbi as u64;
-
-        let tag = {
-            let tag_ptr  = (ptr+self.cur_pos as u64) as *const TagHeader;
-            unsafe {tag_ptr.as_ref().unwrap()}
-        };
+        let tag = unsafe {&*self.next_tag};
         // This is the "ending" tag
         if tag.type_id == 0 && tag.size == 8 {
             return None;
         }
+    
 
-        self.cur_pos += align_upper(tag.size as _, 8) as u32 ;
+        self.next_tag = {
+            let ptr = self.next_tag as usize;
+            let offset = align_upper(tag.size as _, 8);
+            (ptr+offset) as *const TagHeader
+        };
 
         Some(tag)
     }
 }
 
 
+
+
 pub trait MBITag {
-    fn find(mbi: &MultibootInfo) -> Option<&Self>;
+    /// This field is used for the auto impl 
+    /// of the find trait
+    fn find(mbi: &MultibootInfo) -> Option<&'static Self>;
 }
 
 /// This macro  modifies a struct :
@@ -138,9 +140,9 @@ macro_rules! info_tag {
 
         impl MBITag for $name {
             /// Search for the tag and cast the pointer to a ref to Self
-            fn find(mbi:&MultibootInfo) -> Option<&Self> {
+            fn find(mbi:&MultibootInfo) -> Option<&'static Self> {
                 let ptr = mbi.search_tag_from_type($type_id)?;
-                unsafe {Some((ptr as *const Self).as_ref()?)}
+                unsafe {Some((ptr as *const  _ as *const Self).as_ref()?)}
             }
         }
     }
@@ -202,19 +204,20 @@ use super::elf::SectionHeader64;
 use super::elf::SectionHeader32;
 
 impl ELFSymbols {
-    pub fn at(&self, i: usize) -> Option<&SectionHeader64>{
-        if i > self.num as _ {return None}
+    pub fn at(&self, index: usize) -> &'static SectionHeader64{
+        if index > self.num as _ {panic!("Out of bound.");}
         let content = self as *const _  as usize + 20;
-        let section = (content +  i*0x40) as *const u8;
-        Some(unsafe {section.cast::<SectionHeader64>().as_ref().unwrap()})
-    }
-    pub fn at32(&self, i: usize) -> Option<&SectionHeader32>{
-        if i > self.num as _ {return None}
-        let ptr = self as *const _  as usize;
-        let content = (ptr + i*core::mem::size_of::<SectionHeader32>()) as *const u8;
-        Some(unsafe {content.cast::<SectionHeader32>().as_ref().unwrap()})
+        let offset = index*size_of::<SectionHeader64>() as usize;
+        unsafe {&*((content+offset) as  *const SectionHeader64)}
     }
 }
+impl Index<u16> for ELFSymbols {
+    type Output = SectionHeader64;
+    fn index(&self, index: u16) -> &'static Self::Output {
+        self.at(index as _)
+    }
+}
+
 
 info_tag!( 
     type = 6,
@@ -227,24 +230,21 @@ impl MemoryMap {
     pub fn nb_entries(&self) -> u32{
         (self.size - 16)/self.entry_size
     }
+    pub fn at(&self, index:u32) -> &'static MemMapEntry {
+        if !(index<self.nb_entries()){ panic!("Out of bounds."); }
+        let content = self as *const _ as usize + size_of::<Self>();
+        let offset = (index*self.entry_size) as usize;
+        unsafe {&*((content + offset) as *const MemMapEntry)}
+    }
 }
 
 impl Index<u32> for MemoryMap{
     type Output = MemMapEntry;
-
     fn index(&self, index: u32) -> &Self::Output {
-        unsafe {
-            if !(index<self.nb_entries()){ panic!("Out of bounds."); }
-            let ptr = self as *const _ as usize;
-            // We don't forget to add the offset of the 4 first u32
-            let content = ptr + 16;
-            let offset = (index*self.entry_size) as usize;
-            let ptr_mem_entry: *const MemMapEntry = (content + offset) as _;
-            ptr_mem_entry.as_ref().unwrap()
-        }
-
+        self.at(index)
     }
 }
+
 #[repr(C)]
 pub struct MemMapEntry {
     base_addr: u64,
