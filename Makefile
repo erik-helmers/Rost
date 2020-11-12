@@ -65,18 +65,20 @@ test:
 iso: $(iso)
 	
 
-$(iso):  $(kern_elf) $(grub_cfg)
+$(iso): $(kern_elf_stripped) $(grub_cfg)
 	@echo Building ISO for: $(notdir $(kern_elf)) to $(iso)
 	@mkdir -p $(kern_dir)/isofiles/boot/grub
-	@cp $(kern_elf) $(kern_dir)/isofiles/boot/kernel.bin
+	@cp $(kern_elf_stripped) $(kern_dir)/isofiles/boot/kernel.bin
 	@cp $(grub_cfg) $(kern_dir)/isofiles/boot/grub
 	@grub-mkrescue -o $(iso) $(kern_dir)/isofiles 2> /dev/null
 	@rm -r $(kern_dir)/isofiles
 
 $(kern_default): kernel
+$(kern_elf_stripped):
+	@objcopy --strip-all $(kern_elf) $(kern_elf_stripped)
+
 
 asm: $(assembly_object_files)
-	@echo $(assembly_object_files)
 
 build/arch/$(arch)/lib%.a: src/arch/$(arch)/boot/%.asm
 	@mkdir -p $(shell dirname $@)
