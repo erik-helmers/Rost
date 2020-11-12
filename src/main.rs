@@ -25,20 +25,11 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {
     // We have many things to redo now that we're in higher half 
     // - setup a better GDT 
     // - setup better paging
-    serial_println!("Trying to set IDT...");
+    serial_println!("Rost is alive!");
 
+    arch::gdt::init_gdt();
     arch::interrupts::init_idt();
     
-    let mbi = MultibootInfo::new(_boot_info) ;
-    for (i,tag) in (&mbi).into_iter().enumerate() {
-        let tag = tag.as_ref().unwrap();
-        serial_println!("Tag #{} : {:?}",i, tag);
-    }
-    let mmap = mbi.find::<MemoryMap>().unwrap();
-    serial_println!("{:?}", mmap);
-    for i in 0..mmap.nb_entries(){
-        serial_println!("Entry #{}: {:?}", i, mmap[i]);
-    }
 
     devices::qemu_debug::exit(devices::qemu_debug::Status::Success);
 

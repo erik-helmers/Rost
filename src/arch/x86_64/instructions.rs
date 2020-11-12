@@ -5,6 +5,12 @@ pub unsafe fn lidt(ptr: u64){
 }
 
 
+#[inline(always)]
+/// Implement IDT 
+pub unsafe fn lgdt(ptr: u64){
+    asm!("lgdt [rax]", in("rax") ptr);
+}
+
 
 pub unsafe fn sti(){
     asm!("sti",  options(nostack, nomem));
