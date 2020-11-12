@@ -23,8 +23,8 @@ use rost_nbs::arch::idt::{Frame, IDT};
 import_commons!();
 
 
-#[no_mangle]
-pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
+entry_point!(main);
+pub fn main(_mbi: &'static MultibootInfo){
     
     // Custom interrupt setup
     unsafe {

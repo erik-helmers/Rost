@@ -20,15 +20,11 @@ import_commons!();
 
 use common::multiboot2::*;
 
-#[no_mangle]
-pub unsafe extern "sysv64" fn _start(_boot_info: *const MultibootInfo) {
+entry_point!(main);
+pub fn main(mbi: &'static MultibootInfo){
 
-    // Dumping all tags generic
-    
 
-    let mbi = MultibootInfo::new(_boot_info);
-
-    dump_mbi(&mbi);
+    dump_mbi(mbi);
     serial_println!("");
 
     let mmap = mbi.find::<MemoryMap>();
@@ -45,13 +41,13 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const MultibootInfo) {
 }
 
 
-pub unsafe fn dump_mbi(mbi: &MultibootInfo){
+pub fn dump_mbi(mbi: &MultibootInfo){
     
     serial_println!("MBI struct: total_size: {0} = {0:#x}", mbi.size);
 
     for (i, tag) in mbi.into_iter().enumerate() {
         serial_print!("Tag #{}: ", i);
-        dump_tag(tag);
+        unsafe {dump_tag(tag)};
     }
 }
 
@@ -95,7 +91,7 @@ pub fn dump_mmap(mmap: &MemoryMap){
     }
 }
 
-pub unsafe fn dump_elf(elf: &ELFSymbols){
+pub fn dump_elf(elf: &ELFSymbols){
     serial_println!("ELF symbols : {} sections", elf.num);
 
     let num = min(10, elf.num);

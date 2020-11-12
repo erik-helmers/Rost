@@ -24,10 +24,14 @@ pub fn panic_handler(info: &core::panic::PanicInfo) ->! {
     loop{}
 }
 
-#[no_mangle]
+
+
+#[cfg(test)]
+entry_point!(main);
+
 #[cfg(test)]
 /// This is the library entry point when compiled as a
 /// test executable (runs #[test_case] fn's)
-pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) {
+pub fn main(_mbi: &'static MultibootInfo) {
     test_main();
 }

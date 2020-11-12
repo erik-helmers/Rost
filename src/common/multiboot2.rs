@@ -21,8 +21,6 @@ crate::import_commons!();
 use core::{ops::Index, mem::size_of};
 
 use crate::utils::maths::align_upper;
-#[repr(C)]
-struct Header (pub u32, pub u32);
 
 #[derive(Debug)]
 pub struct TagHeader {

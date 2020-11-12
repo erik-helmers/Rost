@@ -17,11 +17,14 @@ use rost_nbs::*;
 
 rost_nbs::import_commons!();
 
-use common::multiboot2::{MultibootInfo, MemoryMap, TagHeader};
+use common::multiboot2::{MemoryMap, TagHeader};
 
-#[no_mangle]
 #[cfg(not(test))]
-pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {
+entry_point!(main);
+#[cfg(test)]
+entry_point!(test::main);
+
+pub fn main(_mbi: &'static MultibootInfo) {
     // We have many things to redo now that we're in higher half 
     // - setup a better GDT 
     // - setup better paging
@@ -29,23 +32,9 @@ pub unsafe extern "sysv64" fn _start(_boot_info: *const ()) {
 
     arch::gdt::init_gdt();
     arch::interrupts::init_idt();
-    
+
 
     devices::qemu_debug::exit(devices::qemu_debug::Status::Success);
-
-}
-
-#[no_mangle]
-#[cfg(test)]
-pub unsafe extern "sysv64" fn _start(_boot_info: *const u8) -> !{
-    use devices::qemu_debug;
-    qemu_debug::exit(qemu_debug::Status::Success);
-}
-
-#[cfg(test)]
-#[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    loop{}
 }
 
 
@@ -54,3 +43,24 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 fn panic(info: &core::panic::PanicInfo) -> ! {
     panic_handler(info);
 }
+
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    pub fn main(_mbi: &MultibootInfo){
+        use devices::qemu_debug;
+        qemu_debug::exit(qemu_debug::Status::Success);
+    }
+    
+    #[panic_handler]
+    fn panic(_info: &core::panic::PanicInfo) -> ! {
+        loop{}
+    }    
+}
+
+
+
+
