@@ -12,6 +12,12 @@ kern_dir := $(dir $(kern_elf))
 # kernel Stripped Debug
 kern_elf_stripped := $(kern_elf)_sd
 
+
+assembly_source_files := $(wildcard src/arch/$(arch)/boot/*.asm)
+assembly_object_files := $(patsubst src/arch/$(arch)/boot/%.asm, \
+	build/arch/$(arch)/lib%.a, $(assembly_source_files))
+
+
 iso ?= $(kern_elf).iso
 
 grub_cfg := src/arch/$(arch)/boot/grub.cfg
@@ -69,6 +75,15 @@ $(iso):  $(kern_elf) $(grub_cfg)
 
 $(kern_default): kernel
 
-kernel:
+asm: $(assembly_object_files)
+	@echo $(assembly_object_files)
+
+build/arch/$(arch)/lib%.a: src/arch/$(arch)/boot/%.asm
+	@mkdir -p $(shell dirname $@)
+	@nasm -felf64 $< -o $@
+
+
+kernel: $(assembly_object_files)
 		@cargo build 
 		@objcopy --strip-debug $(kern_elf) $(kern_elf_stripped) 
+

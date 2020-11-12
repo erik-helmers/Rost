@@ -23,7 +23,7 @@ SECTIONS {
 
 
 	.init ALIGN(0x1000): AT(ADDR(.init)) {
-		KEEP( *(.multiboot-header) )
+		KEEP( *(.multiboot_header) )
 		*(.inittext)
 
 		/* Here are some things required for bootstrapping */

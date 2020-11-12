@@ -7,7 +7,8 @@
     "linker": "rust-lld",
 
     "pre-link-args": {
-        "ld.lld": ["-Tsrc/arch/x86_64/boot/linker.ld"]
+        "ld.lld": ["-Tsrc/arch/x86_64/boot/linker.ld",
+                   "-L", "build/arch/x86_64", "-l","boot"]
     },
 
     "target-endian": "little",
