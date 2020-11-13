@@ -1,4 +1,5 @@
 use core::ops::{Add, AddAssign, Sub};
+use crate::utils::maths::{align_upper, align_lower};
 
 
 /// Implements the Address related traits
@@ -42,6 +43,19 @@ macro_rules! impl_addr_traits{
             }
         }
 
+
+
+        impl $type {
+            #[inline]
+            pub fn align_lower(&self, pad: usize) -> Self {
+                Self {addr: align_lower(self.addr, pad)}
+            }
+            #[inline]
+            pub fn align_upper(&self, pad: usize) -> Self {
+                Self {addr: align_upper(self.addr, pad)}
+            }    
+        }
+
     }
 }
 
@@ -72,8 +86,6 @@ impl PhysAddr {
 
 }
 
-
-
 impl_addr_traits!(PhysAddr);
 
 
@@ -89,7 +101,7 @@ impl_addr_traits!(VirtAddr);
 impl VirtAddr {
     /// Creates a new VirtAddr with check 
     pub fn new(addr: usize) -> Self {
-        assert!(Self::check(addr), "Incorrect address.");
+        assert!(Self::is_valid(addr), "Incorrect address.");
         Self {addr}
     }
 
@@ -105,28 +117,26 @@ impl VirtAddr {
 
 #[cfg(feature="x86_64")]
 impl VirtAddr {
-    pub fn check(addr: usize) -> bool {
-        //FIXME:
-        true 
+    pub fn is_valid(addr: usize) -> bool {
+           addr  < 0x0000_8000_0000_0000 
+        || addr >= 0xffff_8000_0000_0000
     }
 }
 
 impl VirtAddr {
 
     #[inline]
-    pub unsafe fn as_ptr<T>(&self) -> *const T {
+    pub fn as_ptr<T>(&self) -> *const T {
         self.addr as *const T
     }
 
     #[inline]
-    pub unsafe fn as_ptr_mut<T>(&self) -> *mut T {
+    pub fn as_ptr_mut<T>(&self) -> *mut T {
         self.addr as *mut T
     }
 
     #[inline]
-    pub unsafe fn as_usize(&self) -> usize {
+    pub fn as_usize(&self) -> usize {
         self.addr 
     }
 }
-
-
