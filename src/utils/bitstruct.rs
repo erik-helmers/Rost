@@ -78,6 +78,18 @@ macro_rules! __bitstruct_operator_impl {
                 $name{bits: self.bits & other.bits}
             }
         }
+        impl ::core::ops::BitAnd<&$name> for &mut $name {
+            type Output = $name;
+            fn bitand(self, other: &$name) -> $name{
+                $name{bits: self.bits & other.bits}
+            }
+        }
+        impl ::core::ops::BitAndAssign<&$name> for $name {
+            fn bitand_assign(&mut self, other: &$name){
+                *self = (&*self & other);
+            }
+        }
+
         impl ::core::ops::BitOr<$name> for $name {
             type Output = Self;
             fn bitor(self, other: $name) -> Self{
@@ -90,8 +102,18 @@ macro_rules! __bitstruct_operator_impl {
                 $name{bits: self.bits | other.bits}
             }
         }
-        
-        
+        impl ::core::ops::BitOr<&$name> for &mut $name {
+            type Output = $name;
+            fn bitor(self, other: &$name) -> $name{
+                $name{bits: self.bits | other.bits}
+            }
+        }
+        impl ::core::ops::BitOrAssign<&$name> for $name {
+            fn bitor_assign(&mut self, other: &$name){
+                *self = (&*self | other);
+            }
+        }
+
         
     }
 }   
@@ -117,9 +139,8 @@ macro_rules! __bitstruct_field_impl {
             #[inline]
             $(#[$fmeta])*
             /// Sets the flag bit to `val`
-            $pub const fn [<set_ $name>](mut self, val: bool) ->Self{
+            $pub fn [<set_ $name>](&mut self, val: bool){
                 self.bits = (self.bits & !(1 << $offset)) | (val as $repr) << $offset ;
-                self
             }}
             
         }
@@ -141,7 +162,7 @@ macro_rules! __bitstruct_field_impl {
 
             ::paste::paste!{ 
             #[inline] 
-            $pub fn [<set_ $name>](self, val: $repr) ->  Self{
+            $pub fn [<set_ $name>](&mut self, val: $repr){
                 let mask = (1<<($end-$start)) - 1;
                 assert!(val <= mask, "Val ({}) is greater than max value ({})", val, mask);
                 self.[<set_ $name _unchecked>](val)
@@ -149,11 +170,10 @@ macro_rules! __bitstruct_field_impl {
             
             ::paste::paste!{ 
             #[inline] 
-            $pub fn [<set_ $name _unchecked>](mut self, val: $repr) ->  Self{
+            $pub fn [<set_ $name _unchecked>](&mut self, val: $repr){
                 let mask = (1<<($end-$start)) - 1;                
                 let bits = self.bits & mask;
                 self.bits = bits | (val << $start);
-                self
             }}
     
         }
@@ -194,10 +214,10 @@ mod tests {
 
     #[test_case] 
     pub fn set_flag_valid() {
-        let x = Flags{bits:0};
-        let x = x.set_accessed(true);
+        let mut x = Flags{bits:0};
+        x.set_accessed(true);
         assert!(x.accessed());
-        let x = x.set_present(true);
+        x.set_present(true);
         assert!(x.present());
     }
 
@@ -210,8 +230,8 @@ mod tests {
 
     #[test_case]
     pub fn get_val_valid(){
-        let x = Flags{bits: 0};
-        let x = x.set_DPL(3);
+        let mut x = Flags{bits: 0};
+        x.set_DPL(3);
         assert_eq!(x.DPL(), 3);
     }
 }
