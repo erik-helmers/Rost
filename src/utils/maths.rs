@@ -25,14 +25,29 @@ pub const fn align_upper(num: usize, pad:usize) -> usize{
 /// ```
 #[inline(always)]
 pub const fn align_lower(num: usize, pad:usize) -> usize{
-    num & (pad-1)
+    num & !(pad-1)
 }
 
 
+
 #[cfg(test)]
-#[test_case]
-pub fn align_correct(){
-    assert_eq!(align_upper(15, 8), 16);
-    assert_eq!(align_upper(15, 16), 16);
-    assert_eq!(align_upper(26, 8), 32);
+mod tests {
+    use super::*;
+
+    #[test_case]
+    pub fn align_upper_correct(){
+        assert_eq!(align_upper(15, 8), 16);
+        assert_eq!(align_upper(15, 16), 16);
+        assert_eq!(align_upper(26, 8), 32);
+    }
+    
+    #[test_case]
+    pub fn align_lower_correct(){
+        assert_eq!(align_lower(15, 8), 8);
+        assert_eq!(align_lower(15, 16), 0);
+        assert_eq!(align_lower(26, 8), 24);
+    }    
+ 
+
+ 
 }
