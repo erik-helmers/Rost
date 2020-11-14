@@ -11,20 +11,21 @@
 // which will be used
 #![allow(unused_imports)]
 
-use rost_nbs;
+use rost_nbs::{self, common::memory::{paging::RP4, VirtAddr}};
 use rost_nbs::*;
 
 
 rost_nbs::import_commons!();
 
 use common::multiboot2::{MemoryMap, TagHeader};
+use common::memory::paging::translate;
 
 #[cfg(not(test))]
 entry_point!(main);
 #[cfg(test)]
 entry_point!(test::main);
 
-pub fn main(_mbi: &'static MultibootInfo) {
+pub fn main(mbi: &'static MultibootInfo) {
     // We have many things to redo now that we're in higher half 
     // - setup a better GDT 
     // - setup better paging
@@ -32,7 +33,13 @@ pub fn main(_mbi: &'static MultibootInfo) {
 
     arch::gdt::init_gdt();
     arch::interrupts::init_idt();
+    
+    let p4 = VirtAddr::new(0o177_777_776_776_776_776_0000);
 
+   
+    let addr = translate(unsafe{&*(p4.as_ptr())}, p4);
+    serial_println!("FOUND: {:?}", addr);
+    
 
     devices::qemu_debug::exit(devices::qemu_debug::Status::Success);
 }

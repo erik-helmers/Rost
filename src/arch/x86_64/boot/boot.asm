@@ -211,12 +211,19 @@ _init64:
 ; Because 0xffff_ffff_8000_000 is hardcoded in a 
 ; a non trivial way
 init_hh_pages:
+    ; We add recursive mapping at the entry 510 
+    mov eax, p4
+    or eax, 0b11
+    mov [p4+510*8], eax
+
     mov eax,  p3
     or eax, 0b11
+
     mov [p4+511*8], eax
 
     mov dword [p3+510*8], 0x00000083
     mov dword [p3+511*8], 0x40000083
+
     ; we dont forget to flush our changes
     mov rax, cr3
     mov cr3, rax
