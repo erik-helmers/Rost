@@ -1,6 +1,6 @@
 use crate::*;
 
-
+pub mod paging;
 pub mod utils;
 
 pub use utils::{VirtAddr, PhysAddr};
@@ -20,14 +20,14 @@ bitstruct!{
     /// and page aligned we can use the "unused" bytes for 
     /// OS related purpose.
     pub struct Frame(usize) {
-        addr: Val(0..64);
+        addr: Val(0..63);
     }
 }
 
 impl Frame {
     
     pub(self) fn new(addr: PhysAddr) -> Self{
-        Self {bits: addr.as_usize()}
+        Self {bits: addr.as_usize() }
     }
 
     /// This function should be used carefully 
@@ -36,7 +36,7 @@ impl Frame {
     }
     
     pub fn to_phys(&self) -> PhysAddr{
-        PhysAddr::new(self.addr())
+        PhysAddr::new(self.addr() as usize)
     }
 
 }
