@@ -77,6 +77,12 @@ impl<L> Table<L> where L: TableLevel {
             entry.clear();
         }
     }
+
+    /// Downcasts Table to a table of unkown level
+    pub fn downcast(&self) -> &Table<Unknown> {
+        unsafe {&*(self as *const _ as usize as *const Table<Unknown>)}
+    }
+
 }
 
 

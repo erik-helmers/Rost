@@ -11,6 +11,6 @@ spin = "0.7.0"
 paste = "1.0.3"
 
 [features]
-default = [ "x86_64" ]
+default = [ "x86_64", "recursive_mapping" ]
 x86_64 = []
-
+recursive_mapping = []

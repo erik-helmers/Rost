@@ -12,6 +12,7 @@
 
 #![allow(unused_imports)]
 #![allow(unused_macros)]
+#![allow(unused_unsafe)]
 
 pub mod arch;
 pub mod utils; 
