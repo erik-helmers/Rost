@@ -50,5 +50,5 @@ pub fn main(_mbi: &'static MultibootInfo) {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    panic_handler(info);
+    test::panic_handler(info);
 }

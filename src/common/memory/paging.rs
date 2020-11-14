@@ -158,8 +158,9 @@ mod active_pt {
         /// at the `index`-nth  entry if it is exists.
         pub fn next_table_address(&self, index: usize)
                 -> Option<VirtAddr> where T: TablePointerLevel{
-            if !self.entries[index].flags().contains(
-                PDF::PRESENT |PDF::HUGE) {return None;}
+            if !self.entries[index].flags().contains(PDF::PRESENT ) {return None;}
+            if self.entries[index].flags().contains(PDF::HUGE ) {return None;}
+
             let table_ptr = self as *const _ as usize;
             Some(VirtAddr::new_dropping(table_ptr << 9 | index << 12))
         }
