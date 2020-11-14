@@ -128,7 +128,7 @@ macro_rules! __bitstruct_field_impl {
         #[allow(non_snake_case)]
         #[allow(dead_code)]
         impl $struct_name {
-            ::paste::paste!( const [<$name:upper>]: Self = Self{bits: 1<<$offset}; );
+            ::paste::paste!( pub const [<$name:upper>]: Self = Self{bits: 1<<$offset}; );
             #[inline]
             $(#[$fmeta])*
             /// Returns whether this flag's bit is set or not

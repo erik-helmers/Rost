@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::*;
 
 pub mod paging;
@@ -24,7 +26,13 @@ bitstruct!{
         _addr: Val(0..64);
     }
 }
-
+impl fmt::Debug for Frame {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Frame")
+            .field("addr", &self.to_phys())
+            .finish()
+    }
+}
 
 impl Frame {
     

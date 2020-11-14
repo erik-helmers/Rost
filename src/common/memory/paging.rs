@@ -1,33 +1,32 @@
 pub const PAGE_SIZE: usize = 4096;
 
-pub use super::{VirtAddr, PhysAddr, Frame};
+pub use super::{VirtAddr, PhysAddr, Frame, alloc::FrameAllocator};
+use crate::arch::paging::{*, PageDescriptorFlags as PDF };
 
 
-use crate::arch::paging::*;
-
-/// Represents a page 
+/// Represents a page
 #[derive(Debug, Copy, Clone)]
-struct Page {
-    addr: VirtAddr
+pub struct Page {
+    addr: VirtAddr,
+
 }
 
 impl Page {
-    pub fn containing_address(addr: VirtAddr) -> Self {
-        Page {addr: addr.align_lower(PAGE_SIZE)}
+    pub fn new(addr: VirtAddr) -> Self {
+        Self {addr: addr.align_lower(PAGE_SIZE) }
+    }
+    pub fn as_virt(&self) ->VirtAddr {
+        self.addr
     }
 }
-impl Page {
-    pub fn table_index(&self, level: u8) -> usize {
-        (self.addr.as_usize() >> (9*level+12)) & 0o777
-    }        
-}
-
 
 
 pub use active_pt::*;
 
 #[cfg(feature="recursive_mapping")]
 mod active_pt {
+    use core::marker::PhantomData;
+
     use super::*;
     use crate::utils::bitrange::BitRange;
 
@@ -42,79 +41,126 @@ mod active_pt {
     }
 
     impl<'a> ActivePageTable<'a>{
+
+        pub fn p4_mut(&mut self) -> &mut Table<Level4>{
+            unsafe{&mut *(self.p4 as *const _ as usize as *mut Table<Level4>)}
+        }
         /// translates a virtual address to phys
         /// if it is mapped.
-        pub fn translate(self, addr: VirtAddr) ->Option<PhysAddr>{
+        pub fn translate(&self, addr: VirtAddr) ->Option<PhysAddr>{
 
             let mut table = self.p4.downcast();
-            
+
             // Loop through each level
             // exiting with value if the page is huge,
-            // or none if the page isn't present 
+            // or none if the page isn't present
             for level in (0..=3).rev() {
-                
+
                 let idx = addr.table_index(level);
                 let descr_next = &table.entries[idx];
-                if !descr_next.present() {
+                if !descr_next.flags().contains(PDF::PRESENT) {
                     // there is no mapped physaddr
                     return None;
                 }
-                if descr_next.huge() {
+                if descr_next.flags().contains(PDF::HUGE) {
                     let base = descr_next.base_addr()?.as_usize();
                     let offset = addr.as_usize().get_bits(0..12+9*level);
                     return Some(PhysAddr::new(base+offset));
                 }
 
-                table = unsafe {RPT::new(table).next_table(idx)?};
+                table = table.next_table(idx)?;
             }
 
-            
-            Some(table.entries[addr.table_index(0)].base_addr()?+addr.offset())
+            // This is the child of a P1 table, aka the frame
+            Some(PhysAddr::new(table as *const _ as _) +addr.offset())
         }
-    
+
+        pub fn map<A>(&mut self, page: Page, flags: PDF, allocator: &mut A)
+            where A: FrameAllocator
+        {
+            let frame = allocator.allocate(PAGE_SIZE).expect("out of memory");
+            self.map_to(page, frame, flags, allocator)
+        }
+
+
+        pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: PDF,
+            allocator: &mut A)
+        where A: FrameAllocator
+        {
+            let p4 = self.p4_mut();
+            let addr = page.addr;
+            let p3 = p4.next_table_create(addr.table_index(3), allocator);
+            let p2 = p3.next_table_create(addr.table_index(2), allocator);
+            let p1 = p2.next_table_create(addr.table_index(1), allocator);
+
+            assert!(p1.entries[addr.table_index(0)].is_unused());
+            p1.entries[addr.table_index(0)].set(frame.to_phys(), flags | PDF::PRESENT);
+        }
+
+        pub fn unmap<A>(&mut self, page: Page, allocator: &mut A)
+            where A: FrameAllocator
+        {
+            assert!(self.translate(page.addr).is_some());
+            let addr = page.addr;
+            let p1 = self.p4_mut()
+                        .next_table_mut(addr.table_index(3))
+                        .and_then(|p3| p3.next_table_mut(addr.table_index(2)))
+                        .and_then(|p2| p2.next_table_mut(addr.table_index(1)))
+                        .expect("mapping code does not support huge pages");
+            let frame = p1.entries[addr.table_index(0)].base_addr().unwrap();
+            p1.entries[addr.table_index(0)].unused();
+            // TODO free p(1,2,3) table if empty
+            allocator.deallocate(Frame::new(frame));
+        }
 
     }
-    
-    type RPT<'a, T> = RecursivePageTable<'a, T>;
 
-    #[repr(transparent)]
+
     /// This struct may only be used by a recursively mapped
-    /// active page table 
-    struct RecursivePageTable<'a, T: TablePointerLevel> {
-        table: &'a Table<T>
-    }
+    /// active page table
 
-    impl<'a, T: TablePointerLevel> RecursivePageTable<'a, T> {
-        
-        /// Creates a table accessor using recursive mapping
-        /// 
-        /// Safety:
-        /// 
-        /// The reference should use the "recursive addressing", 
-        /// i.e. if the P4 maps to itself at entry 0oXXX, and we try 
-        /// to address a P2 table the addr should be something like:
-        ///      `0oXXX_XXX_132_465_0000`
-        /// 
-        pub unsafe fn new(table: &'a Table<T>) -> Self {
-            Self {table}
-        }
 
+    impl<T: TablePointerLevel> Table<T> {
 
         /// Returns a reference to the table described
         /// at the `index`-nth  entry if it is exists.
         pub fn next_table(&self, index: usize)
-                -> Option<&'a Table<T::Next>> {
+                -> Option<&Table<T::Next>> {
             let addr = self.next_table_address(index)?;
             Some(unsafe {&*(addr.as_ptr())})
         }
 
+        pub fn next_table_create<A>(&mut self,
+            index: usize,
+            allocator: &mut A)
+            -> &mut Table<T::Next>
+        where A: FrameAllocator
+        {
+                if self.next_table(index).is_none() {
+                    assert!(!self.entries[index].flags().contains(PDF::HUGE),
+                    "mapping code does not support huge pages");
+                    let frame = allocator.allocate(4096).expect("no frames available");
+                    self.entries[index].set(frame.to_phys(), PDF::PRESENT | PDF::WRITABLE);
+                    self.next_table_mut(index).unwrap().zero();
+                }
+                self.next_table_mut(index).unwrap()
+        }
+
+        /// Returns a reference to the table described
+        /// at the `index`-nth  entry if it is exists.
+        pub fn next_table_mut(&mut self, index: usize)
+                -> Option<&mut Table<T::Next>> {
+            let addr = self.next_table_address(index)?;
+            Some(unsafe {&mut *(addr.as_ptr_mut())})
+        }
+
         /// Returns an address poiting to the table described
         /// at the `index`-nth  entry if it is exists.
-        pub fn next_table_address(&self, index: usize) 
+        pub fn next_table_address(&self, index: usize)
                 -> Option<VirtAddr> where T: TablePointerLevel{
-            if !self.table.entries[index].present() {return None;}
-            if self.table.entries[index].huge() {return None;}
-            let table_ptr = self.table as *const _ as usize;
+            if !self.entries[index].flags().contains(
+                PDF::PRESENT |PDF::HUGE) {return None;}
+            let table_ptr = self as *const _ as usize;
             Some(VirtAddr::new_dropping(table_ptr << 9 | index << 12))
         }
     }

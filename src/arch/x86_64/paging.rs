@@ -8,11 +8,11 @@
 
 use crate::*;
 use common::memory::{VirtAddr, PhysAddr, Frame};
-use utils::bitstruct;
+use utils::bitflags;
 
 
 
-use core::marker::PhantomData;
+use core::{marker::PhantomData, fmt};
 
 pub trait TableLevel {}
 
@@ -74,7 +74,7 @@ pub struct Table<L: TableLevel> {
 impl<L> Table<L> where L: TableLevel {
     pub fn zero(&mut self){
         for entry in &mut self.entries {
-            entry.clear();
+            entry.unused();
         }
     }
 
@@ -96,50 +96,98 @@ pub enum PageAccessError{
 
 
 impl PageDescriptor {
+    
+    pub fn zero() -> Self{
+        Self{bits:0}
+    }
+
     /// Clears the entry
-    pub fn clear(&mut self){
+    pub fn unused(&mut self){
         self.bits = 0;
         
     }
     /// A clear page can safely be used 
-    pub fn is_clear(&self) -> bool {
+    pub fn is_unused(&self) -> bool {
         self.bits == 0
+    }
+
+    pub fn flags(&self) -> PageDescriptorFlags {
+        PageDescriptorFlags::from_bits_truncate(self.bits)
     }
 
     /// Returns the address physical pointed by
     /// this descriptor
     pub fn base_addr(&self) -> Option<PhysAddr> {
-        if self.present() {
-            Some(PhysAddr::new((self._base_addr() as usize) << 12))
+        if self.flags().contains(PageDescriptorFlags::PRESENT) {
+            Some(PhysAddr::new( 0x000fffff_fffff000 & self.bits as usize ))
         } else {None} 
     }
+
+    pub fn set(&mut self, addr: PhysAddr, flags: PageDescriptorFlags){
+        assert!(addr.as_usize() & !0x000fffff_fffff000 == 0);
+        self.bits = (addr.as_usize() as u64) | flags.bits;
+
+    }
+
     /// Sets the base address pointed by this 
     /// descriptor and sets the Present flag
     pub fn set_base_addr(&mut self, addr: PhysAddr) {
         assert_eq!(addr.align_lower(4096), addr);
-        self.bits |= Self::PRESENT.bits;
+        self.bits |= PageDescriptorFlags::PRESENT.bits;
         self.bits |= addr.as_usize() as u64;
     }
 
     
 }
 
+impl fmt::Debug for PageDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("PageDescriptor")
+            .field("addr", &self.base_addr())
+            .field("flags", &format_args!("{:#b}", self.bits))
+            .finish()
+    }
+}
 
-bitstruct! {
-pub struct PageDescriptor(u64){
+
+
+pub struct PageDescriptor{
+    bits: u64   
+}
+
+impl PageDescriptor {
+
+/*
+    /// These bits are not interpreted by the processor
+    /// and are available for use by system software.
+    pub os_spec_lo(): Val(9..=11);
+    
+
+    _base_addr: Val(12..=51);
+    /// These bits are not interpreted by the processor and are 
+    /// available for use by system software.
+    pub os_spec_hi: Val(52..=62);
+ */
+}
+
+
+
+
+crate::bitflags!(
+    pub struct PageDescriptorFlags(u64){
     /// Present (P) Bit.  Bit 0. This bit indicates whether the page-translation
     /// table or physical page is loaded in physical memory. When the P bit is
     /// cleared to 0, the table or physical page is not loaded in physical
     /// memory. When the P bit is set to 1, the table or physical page is loaded
     ///  in physical memory.
-    pub present: Flag(0);
+    const PRESENT = 1 << 0;
     ///This bit controls read/write access to all physical pages mapped by the
     /// table entry. For example, a page-map level-4 R/W bit controls read/write 
     /// access to all 128M (512 × 512 × 512) physical pages it maps through the 
     /// lower-level translation tables. When the R/W bit is cleared to 0, access
     /// is restricted to read-only. When the R/W bit is set to 1, both read and
     /// write access is allowed.
-    pub writable  : Flag(1);
+    const WRITABLE = 1 << 1;
     /// This bit controls user (CPL 3) access to all physical pages
     ///  mapped by the table entry. For example, a page-map level-4 U/S bit 
     /// controls the access allowed to all 128M (512 × 512 × 512) physical pages
@@ -147,14 +195,14 @@ pub struct PageDescriptor(u64){
     ///  cleared to 0, access is restricted to supervisor level (CPL 0, 1, 2).
     ///  When the U/S bit is set to 1, both user and supervisor
     ///  access is allowed. 
-    pub user_accessible: Flag(2);
+    const USER_ACCESSIBLE = 1 << 2;
     /// Page-Level Writethrough (PWT) Bit. This bit indicates whether 
     /// the page-translation table or physical page to which this entry points
     ///  has a writeback or writethrough caching policy. When the PWT bit is
     ///  cleared to 0, the table or physical page has a writeback caching
     ///  policy. When the PWT bit is set to 1, the table or physical page has
     ///  a writethrough caching policy. 
-    pub pl_writethrought: Flag(3);
+    const PL_WRITETHROUGHT = 1 << 3;
     
     ///Page-Level Cache Disable (PCD) Bit. 
     /// 
@@ -163,7 +211,7 @@ pub struct PageDescriptor(u64){
     ///  cacheable. When the PCD bit is cleared to 0, the table or physical page
     ///  is cacheable. When the PCD bit is set to 1, the table or physical page
     ///  is not cacheable.
-    pub pl_cachedisable: Flag(4);
+    const PL_CACHEDISABLE = 1 << 4;
 
     /// Accessed (A) Bit.  
     /// 
@@ -173,7 +221,7 @@ pub struct PageDescriptor(u64){
     /// page is either read from or written to. The A bit is never cleared by 
     /// the processor. Instead, software must clear this bit to 0 when it needs 
     /// to track the frequency of table or physical-page accesses.
-    pub accessed: Flag(5);
+    const ACCESSED = 1 << 5;
     ///Dirty (D) Bit. 
     /// 
     ///  This bit is only present in the lowest level of the page-translation 
@@ -182,7 +230,7 @@ pub struct PageDescriptor(u64){
     /// first time there is a write to the physical page. The D bit is never
     ///  cleared by the processor. Instead, software must clear this bit to 0 
     /// when it needs to track the frequency of physical-page writes
-    pub dirty: Flag(6);
+    const DIRTY = 1 << 6;
 
     ///Page Size (PS) Bit.
     ///
@@ -198,7 +246,8 @@ pub struct PageDescriptor(u64){
     ///          Gbyte.
     ///      - If CR4.PAE=0 and PDE.PS=1, the physical-page size is 4 Mbytes.
     ///      - If CR4.PAE=1 and PDE.PS=1, the physical-page size is 2 Mbytes.
-    pub huge: Flag(7);
+
+    const HUGE = 1 << 7;
     ///Global Page (G) Bit.
     /// 
     /// This bit is only present in the lowest level of the page-translation
@@ -207,23 +256,15 @@ pub struct PageDescriptor(u64){
     /// either explicitly by a MOV CRn instruction or implicitly during a task
     /// switch. Use of the G bit requires the page-global enable bit in CR4 to
     /// be set to 1 (CR4.PGE=1).
-    pub globalpage: Flag(8);
+    const GLOBALPAGE = 1 << 8;
 
     ///No Execute (NX) Bit. 
     /// 
     /// This bit is present in the translation-table entries defined for PAE
     /// paging, with the exception that the legacy-mode PDPE does not contain 
     /// this bit. This bit is not supported by non-PAE paging.
-    pub no_execute: Flag(63);
-    /// These bits are not interpreted by the processor
-    /// and are available for use by system software.
-    pub os_spec_lo: Val(9..=11);
-    
+    const NO_EXECUTE = 1 << 63;
 
-    _base_addr: Val(12..=51);
-    /// These bits are not interpreted by the processor and are 
-    /// available for use by system software.
-    pub os_spec_hi: Val(52..=62);
-}}
+    }
 
-
+);

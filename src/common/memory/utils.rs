@@ -4,6 +4,7 @@ use crate::utils::bitrange::BitRange;
 use crate::common::memory::paging::PAGE_SIZE;
 
 
+
 /// Implements the Address related traits
 /// 
 /// 
@@ -174,13 +175,13 @@ impl VirtAddr {
     ///     assert_eq!(addr.table_index(1), 034);
     ///     assert_eq!(addr.table_index(0), 130);
     /// ```
-    pub fn table_index(&self, level: usize) -> usize{
+    pub(in crate::common::memory) fn table_index(&self, level: usize) -> usize{
         self.addr >> (12+level*9) & 0o777
     }
 
     /// Return the offset of the address :
     /// the 12 lowest bits are the offset 
-    pub fn offset(&self) -> usize {
+    pub(in crate::common::memory) fn offset(&self) -> usize {
         self.addr & 0xfff
     }
 }
