@@ -20,15 +20,18 @@ bitstruct!{
     /// and page aligned we can use the "unused" bytes for 
     /// OS related purpose.
     pub struct Frame(usize) {
-        addr: Val(0..63);
+        _addr: Val(0..64);
     }
 }
+
 
 impl Frame {
     
     pub(self) fn new(addr: PhysAddr) -> Self{
+        assert!(addr.is_page_aligned());
         Self {bits: addr.as_usize() }
     }
+
 
     /// This function should be used carefully 
     pub(self) fn clone(&self) -> Self {
@@ -36,7 +39,8 @@ impl Frame {
     }
     
     pub fn to_phys(&self) -> PhysAddr{
-        PhysAddr::new(self.addr() as usize)
+        PhysAddr::new(self._addr() as usize)
     }
+
 
 }

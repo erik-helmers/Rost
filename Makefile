@@ -74,7 +74,7 @@ $(iso): $(kern_elf_stripped) $(grub_cfg)
 	@rm -r $(kern_dir)/isofiles
 
 $(kern_default): kernel
-$(kern_elf_stripped):
+$(kern_elf_stripped): $(kern_elf)
 	@objcopy --strip-all $(kern_elf) $(kern_elf_stripped)
 
 

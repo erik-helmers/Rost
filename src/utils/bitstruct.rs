@@ -156,14 +156,14 @@ macro_rules! __bitstruct_field_impl {
             $(#[$fmeta])*
             /// Returns this field's value
             $pub fn $name(&self) -> $repr {
-                
-                (self.bits >> $start) & ((1<<($end - $start))-1)
+                use $crate::utils::bitrange::BitRange;
+                self.bits.get_bits_range($start, $end-1)
             }
 
             ::paste::paste!{ 
             #[inline] 
             $pub fn [<set_ $name>](&mut self, val: $repr){
-                let mask = (1<<($end-$start)) - 1;
+                let mask = $repr::MAX;
                 assert!(val <= mask, "Val ({}) is greater than max value ({})", val, mask);
                 self.[<set_ $name _unchecked>](val)
             }}
@@ -171,9 +171,8 @@ macro_rules! __bitstruct_field_impl {
             ::paste::paste!{ 
             #[inline] 
             $pub fn [<set_ $name _unchecked>](&mut self, val: $repr){
-                let mask = (1<<($end-$start)) - 1;                
-                let bits = self.bits & mask;
-                self.bits = bits | (val << $start);
+                use $crate::utils::bitrange::BitRange;
+                self.bits.set_bits_range($start, $end-1, val);
             }}
     
         }

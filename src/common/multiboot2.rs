@@ -17,10 +17,14 @@
 
 
 crate::import_commons!();
+use crate::*;
 
 use core::{ops::Index, mem::size_of};
 
-use crate::utils::maths::align_upper;
+use common::{memory::PhysAddr, elf::SectionHeader64};
+use common::elf::SectionHeader32;
+use utils::maths::align_upper;
+
 
 #[derive(Debug)]
 pub struct TagHeader {
@@ -198,8 +202,6 @@ info_tag!(
         
 
 });
-use super::elf::SectionHeader64;
-use super::elf::SectionHeader32;
 
 impl ELFSymbols {
     pub fn at(&self, index: usize) -> &'static SectionHeader64{
@@ -245,8 +247,8 @@ impl Index<u32> for MemoryMap{
 
 #[repr(C)]
 pub struct MemMapEntry {
-    base_addr: u64,
-    length: u64,
+    pub base_addr: PhysAddr,
+    pub length: u64,
     _type_id: u32,
     reserved: u32
 }
@@ -349,7 +351,7 @@ impl core::fmt::Debug for MemMapEntry {
         match self {
             MemMapEntry { base_addr, length, _type_id:_, reserved:_ } => {
                 f.debug_struct("MemMapEntry")
-                    .field("base_addr", &format_args!("{:#016x}", base_addr))
+                    .field("base_addr", &format_args!("{:?}", base_addr))
                     .field("length", &format_args!("{:#x}", length))
                     .field("type_id", &format_args!("{:?}", self.type_id()))
                     .finish()

@@ -1,5 +1,7 @@
-use core::ops::{Add, AddAssign, Sub};
+use core::{fmt, ops::{Add, AddAssign, Sub}};
 use crate::utils::maths::{align_upper, align_lower};
+use crate::utils::bitrange::BitRange;
+use crate::common::memory::paging::PAGE_SIZE;
 
 
 /// Implements the Address related traits
@@ -7,7 +9,7 @@ use crate::utils::maths::{align_upper, align_lower};
 /// 
 /// lol no blanket impl for private trait 
 macro_rules! impl_addr_traits{
-    ($type: ident) => {
+    ($type: ident, $name: literal) => {
         impl Add<usize> for $type {
             type Output = Self;
             #[inline]
@@ -43,8 +45,12 @@ macro_rules! impl_addr_traits{
             }
         }
 
-
-
+        
+        impl $type {
+            pub fn is_page_aligned(&self) -> bool {
+                &self.align_lower(PAGE_SIZE) == self
+            }
+        }
         impl $type {
             #[inline]
             pub fn align_lower(&self, pad: usize) -> Self {
@@ -56,6 +62,15 @@ macro_rules! impl_addr_traits{
             }    
         }
 
+        impl fmt::Debug for $type {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.debug_tuple($name)
+                    .field(&format_args!("{:#x}", self.addr))
+                    .finish()
+            }
+        }
+
+
     }
 }
 
@@ -64,7 +79,7 @@ macro_rules! impl_addr_traits{
 
 
 
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct PhysAddr{
     pub addr: usize
@@ -86,23 +101,23 @@ impl PhysAddr {
 
 }
 
-impl_addr_traits!(PhysAddr);
+impl_addr_traits!(PhysAddr, "PhysAddr");
 
 
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct VirtAddr{
     pub addr: usize
 }
 
 
-impl_addr_traits!(VirtAddr);
+impl_addr_traits!(VirtAddr, "VirtAddr");
+
 
 impl VirtAddr {
     /// Creates a new VirtAddr with check 
     pub fn new(addr: usize) -> Self {
-        assert!(Self::is_valid(addr), "Incorrect address.");
-        Self {addr}
+        Self::try_new(addr).expect("Incorrect address.")
     }
 
     /// Creates a new VirtAddr without check
@@ -112,14 +127,33 @@ impl VirtAddr {
     pub unsafe fn new_unchecked(addr: usize) -> Self {
         Self {addr}
     }
+
+    pub fn from_ptr<T>(ptr: *const T) -> Self {
+        Self {addr: ptr as usize}
+    }
 }
 
 
 #[cfg(feature="x86_64")]
 impl VirtAddr {
-    pub fn is_valid(addr: usize) -> bool {
-           addr  < 0x0000_8000_0000_0000 
-        || addr >= 0xffff_8000_0000_0000
+    /// Tries to create a valid address
+    pub fn try_new(addr: usize) -> Option<Self> {
+        match addr.get_bits(47..64) {
+            0 | 0x1ffff => Some(VirtAddr{addr}),     
+            1 => Some(VirtAddr{addr: addr | (0xffff << 48)}), 
+            _ => None,
+        }
+    }
+
+    /// Creates a new valid virtual address
+    /// by dropping any invalid bits
+    pub fn new_dropping(mut addr: usize) -> Self {
+        let mask = match addr.get_bit(47) {
+            false => 0,
+            true => 0xffff
+        };
+        addr.set_bits(48..64, mask);
+        Self{addr}
     }
 }
 
@@ -140,3 +174,4 @@ impl VirtAddr {
         self.addr 
     }
 }
+
