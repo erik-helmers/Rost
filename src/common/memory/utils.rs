@@ -9,7 +9,7 @@ use crate::common::memory::paging::PAGE_SIZE;
 /// 
 /// lol no blanket impl for private trait 
 macro_rules! impl_addr_traits{
-    ($type: ident, $name: literal) => {
+    ($type: ident, $prefix:literal, $name: literal) => {
         impl Add<usize> for $type {
             type Output = Self;
             #[inline]
@@ -62,6 +62,12 @@ macro_rules! impl_addr_traits{
             }    
         }
 
+        impl fmt::Display for $type {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_fmt(format_args!("{}{:#x}", $prefix, self.addr))
+            }
+        }        
+        
         impl fmt::Debug for $type {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 f.debug_tuple($name)
@@ -101,7 +107,8 @@ impl PhysAddr {
 
 }
 
-impl_addr_traits!(PhysAddr, "PhysAddr");
+
+impl_addr_traits!(PhysAddr, "P", "PhysAddr");
 
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
@@ -111,7 +118,7 @@ pub struct VirtAddr{
 }
 
 
-impl_addr_traits!(VirtAddr, "VirtAddr");
+impl_addr_traits!(VirtAddr, "V", "VirtAddr");
 
 
 impl VirtAddr {
@@ -154,6 +161,27 @@ impl VirtAddr {
         };
         addr.set_bits(48..64, mask);
         Self{addr}
+    }
+
+
+    
+    /// Returns the index of the entry
+    /// for the page of `level`. For example
+    /// ```
+    ///     let addr = Virt::new(0o123_456_034_130_5129);
+    ///     assert_eq!(addr.table_index(3), 123);
+    ///     assert_eq!(addr.table_index(2), 456);
+    ///     assert_eq!(addr.table_index(1), 034);
+    ///     assert_eq!(addr.table_index(0), 130);
+    /// ```
+    pub fn table_index(&self, level: usize) -> usize{
+        self.addr >> (12+level*9) & 0o777
+    }
+
+    /// Return the offset of the address :
+    /// the 12 lowest bits are the offset 
+    pub fn offset(&self) -> usize {
+        self.addr & 0xfff
     }
 }
 
