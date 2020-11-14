@@ -2,6 +2,7 @@ use crate::*;
 
 pub mod paging;
 pub mod utils;
+pub mod alloc;
 
 pub use utils::{VirtAddr, PhysAddr};
 
