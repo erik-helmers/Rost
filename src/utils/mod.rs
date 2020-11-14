@@ -4,3 +4,4 @@ pub mod macros;
 pub mod maths;
 pub mod bitstruct;
 pub mod bitrange;
+pub mod bitflags;
