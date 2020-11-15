@@ -1,3 +1,5 @@
+use crate::common::memory::PhysAddr;
+
 #[inline(always)]
 /// Implement IDT 
 pub unsafe fn lidt(ptr: u64){
@@ -20,7 +22,14 @@ pub unsafe fn cli(){
     asm!("cli", options(nostack, nomem));
 }
 
-
+pub unsafe fn set_cr3(addr: PhysAddr) {
+    asm!("mov cr3, {}", in(reg) addr.as_usize());
+}
+pub unsafe fn get_cr3() -> PhysAddr {
+    let addr: usize;
+    asm!("mov {}, cr3", lateout(reg) addr);
+    PhysAddr::new(addr)
+}
 
 
 // Here we implement i/o instruction, namely in(x) / out(x) commands and sti, cli
