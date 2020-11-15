@@ -46,7 +46,7 @@ mod active_pt {
             unsafe{&mut *(self.p4 as *const _ as usize as *mut Table<Level4>)}
         }
         /// translates a virtual address to phys
-        /// if it is mapped.
+        /// if it is mapped. this function supports huge pages.
         pub fn translate(&self, addr: VirtAddr) ->Option<PhysAddr>{
 
             let mut table = self.p4.downcast();
@@ -62,19 +62,19 @@ mod active_pt {
                     // there is no mapped physaddr
                     return None;
                 }
-                if descr_next.flags().contains(PDF::HUGE) {
+                if level == 0 || descr_next.flags().contains(PDF::HUGE) {
                     let base = descr_next.base_addr()?.as_usize();
                     let offset = addr.as_usize().get_bits(0..12+9*level);
                     return Some(PhysAddr::new(base+offset));
                 }
-
+                
                 table = table.next_table(idx)?;
             }
 
-            // This is the child of a P1 table, aka the frame
-            Some(PhysAddr::new(table as *const _ as _) +addr.offset())
+            unreachable!()
         }
 
+        /// this function does not support to huge pages
         pub fn map<A>(&mut self, page: Page, flags: PDF, allocator: &mut A)
             where A: FrameAllocator
         {
@@ -83,6 +83,7 @@ mod active_pt {
         }
 
 
+        /// this function does not support to huge pages
         pub fn map_to<A>(&mut self, page: Page, frame: Frame, flags: PDF,
             allocator: &mut A)
         where A: FrameAllocator
