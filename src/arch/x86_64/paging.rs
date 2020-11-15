@@ -82,7 +82,10 @@ impl<L> Table<L> where L: TableLevel {
     pub fn downcast(&self) -> &Table<Unknown> {
         unsafe {&*(self as *const _ as usize as *const Table<Unknown>)}
     }
-
+    /// Downcasts Table to a table of unkown level
+    pub fn downcast_mut(&mut self) -> &mut Table<Unknown> {
+        unsafe {&mut *(self as *mut _ as usize as *mut Table<Unknown>)}
+    }
 }
 
 

@@ -14,6 +14,7 @@
 
 use rost_nbs::*;
 use arch::paging::PageDescriptorFlags as PDF;
+use common::memory::{SizeType, VirtAddr, PhysAddr};
 use common::memory::paging::*;
 use common::memory::alloc::*;
 
@@ -46,15 +47,19 @@ pub fn main(mbi: &'static MultibootInfo) {
     };
 
 
-    let addr = VirtAddr::new(42 * 512 * 512 * 4096); // 42th P3 entry
-    let page = Page::new(addr);
-    let frame = alloc.allocate(4096).expect("no more frames");
+
+    let addr = VirtAddr::new(0o251_042_000_000_0000); 
+    let page = Page::new(addr, SizeType::Page);
+    
+    let frame = alloc.allocate(SizeType::Page);
+
+    
     serial_println!("None = {:?}, map to {:?}",
             rapt4.translate(addr),
             frame);
-    rapt4.map_to(page, frame, PDF::empty(), &mut alloc);
+    rapt4.map_to(page, frame, PDF::PRESENT, &mut alloc);
     serial_println!("Some = {:?}", rapt4.translate(addr));
-    serial_println!("next free frame: {:?}", alloc.allocate(4096));
+    serial_println!("next free frame: {:?}", alloc.allocate(SizeType::Page));
 
     let _ = unsafe {*(addr.as_ptr::<u8>())};
 

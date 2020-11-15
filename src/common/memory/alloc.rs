@@ -5,15 +5,25 @@ use core::cmp::max;
 
 use crate::*;
 
-use super::{Frame, PhysAddr};
+use super::{Frame, PhysAddr, SizeType};
 use common::multiboot2::{ELFSymbols, MemoryMap, MemMapEntryType};
 
 pub trait FrameAllocator {
         /// Allocate a frame
         ///
+        /// Panics if requested size can not be allocated
+        fn allocate(&mut self, size: SizeType) -> Frame {
+            self.try_allocate(size).expect(
+                "Out of memory."
+            )
+        }
+
+        /// Try to allocate a frame
+        ///
         /// If the current size cannot be allocated
         /// return None
-        fn allocate(&mut self, size: usize) -> Option<Frame>;
+        fn try_allocate(&mut self, size: SizeType) -> Option<Frame>;
+
         /// Deallocate a given frame
         ///
         /// Panics if the Frame was not allocated
@@ -69,18 +79,23 @@ impl<'a> IncrAllocator<'a> {
 
 
 impl<'a> FrameAllocator for IncrAllocator<'a> {
-    fn allocate(&mut self, size: usize) -> Option<Frame> {
-        let n = loop {
-            let a = self.next_valid_elf(size)?;
-            let b = self.next_valid_mmap(size)?;
-            if a==b {break a};
-            self.next_addr = max(a,b);
-        };
-        self.next_addr = n + size;
-        Some(Frame::new(n))
-    }
+
 
     fn deallocate(&mut self, _frame: Frame) {
         //FIXME:
+    }
+
+    fn try_allocate(&mut self, size: SizeType) -> Option<Frame> {
+        assert_eq!(size, SizeType::Page);
+
+        let n = loop {
+            let a = self.next_valid_elf(size.size())?;
+            let b = self.next_valid_mmap(size.size())?;
+            if a==b {break a};
+            self.next_addr = max(a,b);
+        };
+
+        self.next_addr = n + size.size();
+        Some(Frame::new(n, size))
     }
 }
