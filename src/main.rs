@@ -14,7 +14,7 @@
 
 use rost_nbs::*;
 use arch::paging::PageDescriptorFlags as PDF;
-use common::memory::{SizeType, VirtAddr, PhysAddr};
+use common::memory::{SizeType, VirtAddr, PhysAddr, Frame};
 use common::memory::paging::*;
 use common::memory::alloc::*;
 
@@ -46,7 +46,7 @@ pub fn main(mbi: &'static MultibootInfo) {
         ActivePageTable::new(&*p4.as_ptr())
     };
 
-
+    remap::kernel_remap(&mut rapt4,&mut  alloc);
 
     let addr = VirtAddr::new(0o251_042_000_000_0000); 
     let page = Page::new(addr, SizeType::Page);

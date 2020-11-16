@@ -3,7 +3,7 @@ pub const PAGE_SIZE: usize = 4096;
 
 
 pub mod mapper;
-
+pub mod remap;
 
 use super::{Frame, PhysAddr, SizeType, VirtAddr, alloc::FrameAllocator};
 
@@ -79,11 +79,8 @@ impl ActivePageTable {
     /// Creates a new recursivelly mapped 
     /// page at index entry `recursive_index`
     /// 
-    /// Be careful the init function should not 
-    /// use 
-    /// 
     pub fn create_and_set_new_p4<A, F>(&mut self, recursive_index:u8,alloc: &mut A, init: F) 
-    where A: FrameAllocator, F: FnOnce(&mut Mapper){
+    where A: FrameAllocator, F: FnOnce(&mut Mapper, &mut A){
         let recursive_index = recursive_index as usize;
         // this assert is not strictly necessary but good to have for now
         assert!(self.p4().entries[recursive_index].is_unused());
@@ -109,23 +106,14 @@ impl ActivePageTable {
         let p4:&mut Table<Level4> = unsafe {&mut *(p4_addr.as_ptr_mut())};
 
         let mut mapper = unsafe {Mapper::new(p4)};
-        init(&mut mapper);
+        init(&mut mapper, alloc);
 
         // safe: the p4 is valid
+        self.mapper = mapper;
         unsafe {crate::arch::instructions::set_cr3(new_p4.addr())};
-
-
     }
 }
 
-pub struct InactivePageTable {
-    p4_frame:Frame
-}
-impl InactivePageTable {
-    pub fn new(frame: Frame) -> InactivePageTable {
-        InactivePageTable {p4_frame: frame}
-    }
-}
 
 /// The index is a number in [0;511], e.g. 243
 /// 
