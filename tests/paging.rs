@@ -57,19 +57,31 @@ pub fn main(mbi: &'static MultibootInfo) {
 fn test_huge_pages<A>(rapt4: &mut ActivePageTable, alloc: &mut A) 
     where A: FrameAllocator{
     
-    let addr = VirtAddr::new(0o251_042_000_000_0000); 
+
+    serial_print!("Testing huge page allocation : ");
+
+    let addr = VirtAddr::new(0o251_042_123_000_0000); 
     assert!(rapt4.translate(addr).is_none());
+
 
     let page = Page::new(addr, SizeType::HugeP2);  
     let frame = alloc.allocate(SizeType::HugeP2);
 
-    
-    serial_println!("None = {:?}, map to {:?}",
+    /* serial_println!("None = {:?}, map to {:?}",
             rapt4.translate(addr),
             frame);
+     */
     rapt4.map_to(page, frame, PDF::PRESENT, alloc);
-    serial_println!("Some = {:?}", rapt4.translate(addr));
-    serial_println!("next free frame: {:?}", alloc.allocate(SizeType::Page));
+    assert!(rapt4.translate(addr).is_some());
+    assert!(rapt4.translate(addr+0x2000).is_some());
+    //serial_println!("Some = {:?}", rapt4.translate(addr));
+
+    //serial_println!("next free frame: {:?}", alloc.allocate(SizeType::Page));
+    rapt4.unmap(page, alloc);
+    assert!(rapt4.translate(addr).is_none());
+    assert!(rapt4.translate(addr+0x2000).is_none());
+    //serial_println!("None = {:?}", rapt4.translate(addr));
+    serial_println!("[ok]");
 }
 
 
