@@ -48,8 +48,8 @@ macro_rules! impl_addr_traits{
 
         
         impl $type {
-            pub fn is_page_aligned(&self) -> bool {
-                &self.align_lower(PAGE_SIZE) == self
+            pub fn is_aligned(&self, alignement: usize) -> bool {
+                &self.align_lower(alignement) == self
             }
         }
         impl $type {

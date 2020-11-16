@@ -73,7 +73,6 @@ impl<'a> Mapper<'a> {
         allocator: &mut A)
     where A: FrameAllocator
     {
-        assert_eq!(frame.size(), SizeType::Page);
         assert_eq!(frame.size(), page.size());
 
         let addr = page.addr();
@@ -114,8 +113,8 @@ impl<'a> Mapper<'a> {
         }
 
         
-        let phys_addr = table.entries[addr.table_index(0)].base_addr().unwrap();
-        table.entries[addr.table_index(0)].unused();
+        let phys_addr = table.entries[addr.table_index(map_lvl)].base_addr().unwrap();
+        table.entries[addr.table_index(map_lvl)].unused();
 
         // TODO: free p(1,2,3) table if empty?
         allocator.deallocate(Frame::new(phys_addr, page.size()));

@@ -48,7 +48,7 @@ pub struct Frame {
 impl Frame {
     
     pub(self) fn new(addr: PhysAddr, size: SizeType) -> Self{
-        assert!(addr.is_page_aligned());
+        assert!(addr.is_aligned(SizeType::Page.size()));
         Self {bits: addr.as_usize() | size as usize }
     }
 

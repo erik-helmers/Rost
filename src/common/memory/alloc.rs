@@ -52,14 +52,20 @@ impl<'a> IncrAllocator<'a> {
        let next = self.next_addr;
        let mmap = self.mmap;
        for i in 0..mmap.nb_entries() {
+
            let sec_start = mmap[i].base_addr;
            let sec_end = sec_start + mmap[i].length as usize;
+           let sec_size = (sec_end - sec_start.as_usize()).as_usize();
+
            match mmap[i].type_id() {
+
                MemMapEntryType::RAM =>
                    // if the frame would overflow on a reserved section
                    // (it is assumed there are no contiguous valid ram section)
                    if sec_end < next+size { continue }
-                   else if next <= sec_start { return Some(sec_start) }
+                   else if next <= sec_start && size <= sec_size  {
+                        return Some(sec_start) 
+                    }
                    else { return Some(next) },
                _ => continue,
            }
@@ -86,8 +92,7 @@ impl<'a> FrameAllocator for IncrAllocator<'a> {
     }
 
     fn try_allocate(&mut self, size: SizeType) -> Option<Frame> {
-        assert_eq!(size, SizeType::Page);
-
+        // FIXME: the frame may not be properly aligned
         let n = loop {
             let a = self.next_valid_elf(size.size())?;
             let b = self.next_valid_mmap(size.size())?;
