@@ -7,21 +7,22 @@ macro_rules! bitflags {
     (
         $(#[$meta:meta])*
         $pub:vis struct $name:ident($repr:ty){
-            $($rest:tt)*
+            $($fields:tt)*
         }
     ) => {
         $(#[$meta])*
         #[allow(dead_code)]
-        #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
+        #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
         pub struct $name {
             bits: $repr
         }
         #[allow(dead_code)]
         impl $name {
-            $crate::__bitflags_flags!($name; 0; {$($rest)*});
+            $crate::__bitflags_flags!($name; 0; {$($fields)*});
         }
 
         $crate::__bitflags_impl!($name;$repr);
+        $crate::__bitflags_impl_debug!($name; $repr; $($fields)*);
     };
 }
 
@@ -52,11 +53,47 @@ macro_rules! __bitflags_flags {
     };
 }
 
+#[macro_export]
+macro_rules! __bitflags_impl_debug {
+    ($name: ident;$repr: ty; $(
+        $(#[$_: meta])*
+        const $names:ident = $val:expr;
+    )*) => {
+        
+        #[allow(unused_variables, unused_mut, unused_assignments)]
+        impl core::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> core::fmt::Result {
+                let mut sep = "";
+                $(
+                    if (self.contains(Self::$names)){
+                        f.write_str(sep)?;
+                        sep = " | ";
+                        f.write_str(::core::stringify!($names))?;
+                    }
+                )*
+                
+                if sep == "" { f.write_str("empty")?;}
+
+                Ok(())    
+            }
+        }
+
+        impl core::fmt::Debug for $name {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> core::fmt::Result {
+                f.write_fmt(format_args!("{}({})", ::core::stringify!($name), self))
+            }
+        }
+    
+    
+    }
+}
+
+
 
 
 #[macro_export]
 /// implements the traits for a bitflag struct
-/// ive saved something like 40 lines.
+/// ive saved something like 40 lines with this macro.
 macro_rules! __bitflags_impl_trait {
     ($struct: ident, $trait: ident, $func:ident, 
                     $trait_as: ident, $trait_as_fn: ident, 
