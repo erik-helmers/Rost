@@ -120,13 +120,44 @@ impl<'a> Mapper<'a> {
         allocator.deallocate(Frame::new(phys_addr, page.size()));
     }
 
+
+    pub fn dump(&self){
+        self.dump_table(self.p4().downcast(), 0);
+    }
+
+
+
+    pub fn dump_table(&self, table: &Table<Unknown>, lvl: u8){
+        if lvl == 4 { return; }
+        let phys = self.translate(VirtAddr::from_ptr(table as _)).unwrap();
+        for idx in 0..512 {
+            if table.entries[idx].is_unused() {continue;}
+            if table.entries[idx].flags().contains(PDF::HUGE){
+                serial_println!("{} Entry {:3} Huge page : {:?} ", str_depth(lvl), 
+                    idx, table.entries[idx].base_addr().unwrap());
+            }
+            // The table is present
+            else {
+                let nt = table.next_table(idx).unwrap();
+                if nt.entries[idx].base_addr() == Some(phys) {
+                    serial_println!("{} Entry {} Recursive mapping", str_depth(lvl), idx);
+                    continue;
+                }
+                serial_println!("{} Entry {}", str_depth(lvl), idx);
+                self.dump_table(nt, lvl+1)
+            } 
+        }
+    }
+
+
 }
 
 
 impl<T: TablePointerLevel> Table<T> {
 
     /// Returns a reference to the table described
-    /// at the `index`-nth  entry if it is exists.
+    /// at the `index`-nth  entry if it is exists and it
+    /// isn't huge
     pub fn next_table(&self, index: usize)
             -> Option<&Table<T::Next>> {
         let addr = self.next_table_address(index)?;
@@ -157,6 +188,7 @@ impl<T: TablePointerLevel> Table<T> {
 
     /// Returns an address poiting to the table described
     /// at the `index`-nth  entry if it is exists.
+    /// Returns none if the table is huge or is not present
     pub fn next_table_address(&self, index: usize)
             -> Option<VirtAddr> where T: TablePointerLevel{
         if !self.entries[index].flags().contains(PDF::PRESENT ) {return None;}
