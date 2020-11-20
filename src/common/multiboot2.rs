@@ -210,10 +210,15 @@ impl ELFSymbols {
         let offset = index*size_of::<SectionHeader64>() as usize;
         unsafe {&*((content+offset) as  *const SectionHeader64)}
     }
+    pub fn length(&self) -> usize {
+        self.num as usize
+    }
 }
-impl Index<u16> for ELFSymbols {
+ 
+
+impl Index<usize> for &ELFSymbols {
     type Output = SectionHeader64;
-    fn index(&self, index: u16) -> &'static Self::Output {
+    fn index(&self, index: usize) -> &Self::Output {
         self.at(index as _)
     }
 }

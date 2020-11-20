@@ -97,7 +97,7 @@ pub fn dump_elf(elf: &ELFSymbols){
     let num = min(10, elf.num);
 
     for i in 0..num {
-        serial_println!("Section #{}: {:#?}", i, elf[i]);    
+        serial_println!("Section #{}: {:#?}", i, elf[i as _]);    
     }
     
     if num < elf.num { serial_println!("... Omitted {} sections.", elf.num - num); }
